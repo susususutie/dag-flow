@@ -1,4 +1,4 @@
-import { DAGCanvas, DAGProvider } from "dag-flow";
+import { DagFlow, DagFlowProvider } from "dag-flow";
 import { StatusNode, STATUS_COLORS } from "./shared.tsx";
 import type { StatusNodeProps } from "./shared.tsx";
 
@@ -9,11 +9,7 @@ function CardNode(
 ) {
   const status = props.data?.status ?? "default";
   return (
-    <div
-      data-node-id={props.id}
-      className="demo-card-node"
-      style={{ borderColor: STATUS_COLORS[status] ?? "#d9d9d9" }}
-    >
+    <div className="demo-card-node" style={{ borderColor: STATUS_COLORS[status] ?? "#d9d9d9" }}>
       <div className="demo-card-title">{props.data?.label ?? props.id}</div>
       <div className="demo-card-desc">{props.data?.desc}</div>
     </div>
@@ -23,7 +19,6 @@ function CardNode(
 function IconNode(props: StatusNodeProps) {
   return (
     <div
-      data-node-id={props.id}
       className="demo-icon-node"
       style={
         props.selected
@@ -57,9 +52,9 @@ const NODES = [
 
 export default function CustomNodesDemo() {
   return (
-    <DAGProvider>
+    <DagFlowProvider>
       <div className="demo-canvas">
-        <DAGCanvas
+        <DagFlow
           nodes={NODES}
           flow={["request", [["approve"], ["review-1", "review-2"]], "finish"]}
           nodeTypes={nodeTypes}
@@ -67,6 +62,6 @@ export default function CustomNodesDemo() {
           fitViewOptions={{ padding: 40 }}
         />
       </div>
-    </DAGProvider>
+    </DagFlowProvider>
   );
 }

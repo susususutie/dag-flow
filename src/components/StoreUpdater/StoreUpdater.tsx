@@ -3,7 +3,7 @@ import { CanvasInstanceContext } from "../../contexts/StoreContext.tsx";
 import type { CanvasConfigProps } from "../../types/index.ts";
 
 /**
- * 将 DAGCanvas 的受控数据、默认数据和画布配置同步到当前 store。
+ * 将 DagFlow 的受控数据、默认数据和画布配置同步到当前 store。
  */
 export default function StoreUpdater(props: CanvasConfigProps) {
   const instance = useContext(CanvasInstanceContext);
@@ -15,11 +15,9 @@ export default function StoreUpdater(props: CanvasConfigProps) {
     defaultFlow,
     nodes,
     defaultNodes,
-    hGap,
-    vGap,
-    lineWidth,
-    lineColor,
     nodesSelectable,
+    nodesDraggable,
+    direction,
     minZoom,
     maxZoom,
     fitView,
@@ -39,7 +37,6 @@ export default function StoreUpdater(props: CanvasConfigProps) {
     onMove,
     nodeTypes,
     layoutEngine,
-    onLayoutChange,
   } = props;
 
   useLayoutEffect(() => {
@@ -50,11 +47,9 @@ export default function StoreUpdater(props: CanvasConfigProps) {
       defaultFlow,
       nodes,
       defaultNodes,
-      hGap,
-      vGap,
-      lineWidth,
-      lineColor,
       nodesSelectable,
+      nodesDraggable,
+      direction,
       minZoom,
       maxZoom,
       fitView,
@@ -74,7 +69,6 @@ export default function StoreUpdater(props: CanvasConfigProps) {
       onMove,
       nodeTypes,
       layoutEngine,
-      onLayoutChange,
     });
   }, [
     instance,
@@ -84,11 +78,9 @@ export default function StoreUpdater(props: CanvasConfigProps) {
     defaultFlow,
     nodes,
     defaultNodes,
-    hGap,
-    vGap,
-    lineWidth,
-    lineColor,
     nodesSelectable,
+    nodesDraggable,
+    direction,
     minZoom,
     maxZoom,
     fitView,
@@ -108,7 +100,6 @@ export default function StoreUpdater(props: CanvasConfigProps) {
     onMove,
     nodeTypes,
     layoutEngine,
-    onLayoutChange,
   ]);
 
   return null;

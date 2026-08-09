@@ -1,18 +1,18 @@
 import { useCallback, useState } from "react";
-import { DAGCanvas, DAGProvider, useDAGState } from "dag-flow";
+import { DagFlow, DagFlowProvider, useDAGState } from "dag-flow";
 import { BASIC_FLOW, BASIC_NODES, nodeTypes } from "./shared.tsx";
 
-/** DAGProvider 受控：useDAGState 提供 nodes/flow 与可直接传入 DAGCanvas 的变更回调 */
+/** DagFlowProvider 受控：useDAGState 提供 nodes/flow 与可直接传入 DagFlow 的变更回调 */
 export default function ProviderDemo() {
   return (
-    <DAGProvider>
+    <DagFlowProvider>
       <Scene />
-    </DAGProvider>
+    </DagFlowProvider>
   );
 }
 
 function Scene() {
-  const { nodes, flow, onNodesChange, onFlowChange, setNodes, setFlow } = useDAGState({
+  const { nodes, flow, onNodesChange, onFlowChange, setDAG } = useDAGState({
     nodes: BASIC_NODES,
     flow: BASIC_FLOW,
   });
@@ -24,21 +24,22 @@ function Scene() {
 
   const addNode = useCallback(() => {
     const id = `extra-${Date.now() % 10000}`;
-    setNodes((current) => [...current, { id, data: { label: id } }]);
-    setFlow((current) => [...current, id]);
-    record(`setNodes / setFlow 追加 ${id}`);
-  }, [record, setFlow, setNodes]);
+    setDAG((current) => ({
+      nodes: [...current.nodes, { id, position: { x: 1550, y: 56 }, data: { label: id } }],
+      flow: [...current.flow, id],
+    }));
+    record(`setDAG 追加 ${id}`);
+  }, [record, setDAG]);
 
   const reset = useCallback(() => {
-    setNodes(BASIC_NODES);
-    setFlow(BASIC_FLOW);
+    setDAG({ nodes: BASIC_NODES, flow: BASIC_FLOW });
     record("setDAG 重置为初始数据");
-  }, [record, setFlow, setNodes]);
+  }, [record, setDAG]);
 
   return (
     <div className="demo-controlled">
       <div className="demo-canvas">
-        <DAGCanvas
+        <DagFlow
           nodes={nodes}
           flow={flow}
           nodeTypes={nodeTypes}

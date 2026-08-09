@@ -77,7 +77,6 @@ export default function canvasReducer(state: StoreState, action: CanvasAction): 
         flow,
         history: pushSnapshot(state.history, snapshotOf(state)),
         future: [],
-        layoutEpoch: 0,
       };
     }
     case "SET_NODE_MAP": {
@@ -94,7 +93,6 @@ export default function canvasReducer(state: StoreState, action: CanvasAction): 
         selectedNodes,
         history: pushSnapshot(state.history, snapshotOf(state)),
         future: [],
-        layoutEpoch: 0,
       };
     }
     case "SET_DAG": {
@@ -119,7 +117,6 @@ export default function canvasReducer(state: StoreState, action: CanvasAction): 
         selectedNodes,
         history: pushSnapshot(state.history, snapshotOf(state)),
         future: [],
-        layoutEpoch: 0,
       };
     }
     case "DELETE_NODE": {
@@ -128,8 +125,6 @@ export default function canvasReducer(state: StoreState, action: CanvasAction): 
       const nodeMap = new Map(state.nodeMap);
       const flow = new Flow(state.flow);
       const nodeDimensions = new Map(state.nodeDimensions);
-      const computedPositions = new Map(state.computedPositions);
-      const dragPositions = new Map(state.dragPositions);
       const selectedNodes = new Set(state.selectedNodes);
       const existingIds = list.filter((id) => nodeMap.has(id) || flow.hasNode(id));
       if (existingIds.length === 0) return state;
@@ -138,8 +133,6 @@ export default function canvasReducer(state: StoreState, action: CanvasAction): 
         nodeMap.delete(id);
         flow.remove(id);
         nodeDimensions.delete(id);
-        computedPositions.delete(id);
-        dragPositions.delete(id);
         selectedNodes.delete(id);
       });
       return {
@@ -148,8 +141,6 @@ export default function canvasReducer(state: StoreState, action: CanvasAction): 
         flow: flow.toArray(),
         nodeMap,
         nodeDimensions,
-        computedPositions,
-        dragPositions,
         selectedNodes,
         history: pushSnapshot(state.history, snapshotOf(state)),
         future: [],
@@ -174,60 +165,43 @@ export default function canvasReducer(state: StoreState, action: CanvasAction): 
       if (!hasChange) return state;
       return { ...state, nodeDimensions };
     }
-    case "SET_COMPUTED_POSITIONS": {
-      const next = action.payload;
-      if (next === state.computedPositions) return state;
-      return { ...state, computedPositions: next };
-    }
     case "UPDATE_NODE_POSITION": {
-      const { id, position } = action.payload;
-      if (!state.nodeMap.has(id)) return state;
-      const dragPositions = new Map(state.dragPositions);
-      dragPositions.set(id, { x: position.x, y: position.y });
-      return { ...state, dragPositions };
+      const { id, position, dragging, origin } = action.payload;
+      const node = state.nodeMap.get(id);
+      if (!node) return state;
+
+      const positionChanged = node.position?.x !== position.x || node.position?.y !== position.y;
+      const dragFinished =
+        dragging === false &&
+        origin !== undefined &&
+        (origin.x !== position.x || origin.y !== position.y);
+      if (!positionChanged && !dragFinished) return state;
+
+      const nodeMap = positionChanged ? new Map(state.nodeMap) : state.nodeMap;
+      if (positionChanged) {
+        nodeMap.set(id, { ...node, position: { x: position.x, y: position.y } });
+      }
+
+      if (!dragFinished) return { ...state, dirty: true, nodeMap };
+
+      const previousNodeMap = new Map(nodeMap);
+      previousNodeMap.set(id, { ...node, position: origin });
+      return {
+        ...state,
+        dirty: true,
+        nodeMap,
+        history: pushSnapshot(state.history, {
+          flow: state.flow,
+          nodeMap: previousNodeMap,
+          selectedNodes: state.selectedNodes,
+        }),
+        future: [],
+      };
     }
     case "UPDATE_CONNECTING": {
       const { edge } = action.payload;
       if (edge === state.connectingEdge) return state;
       return { ...state, connectingEdge: edge };
-    }
-    case "CLEAR_NODE_POSITIONS": {
-      const { ids } = action.payload;
-      if (ids.length === 0) return state;
-      const dragPositions = new Map(state.dragPositions);
-      let hasChange = false;
-      for (const id of ids) {
-        if (dragPositions.delete(id)) hasChange = true;
-      }
-      return hasChange ? { ...state, dragPositions } : state;
-    }
-    case "COMMIT_NODE_POSITIONS": {
-      const { positions, clearIds } = action.payload;
-      if (positions.size === 0 && (!clearIds || clearIds.length === 0)) return state;
-      const nodeMap = new Map(state.nodeMap);
-      let hasChange = false;
-      for (const [id, position] of positions) {
-        const node = nodeMap.get(id);
-        if (!node) continue;
-        if (node.position?.x === position.x && node.position?.y === position.y) continue;
-        nodeMap.set(id, { ...node, position: { x: position.x, y: position.y } });
-        hasChange = true;
-      }
-      let dragPositions = state.dragPositions;
-      if (clearIds && clearIds.length > 0) {
-        dragPositions = new Map(dragPositions);
-        for (const id of clearIds) dragPositions.delete(id);
-      }
-      if (!hasChange && dragPositions === state.dragPositions) return state;
-      return {
-        ...state,
-        dirty: true,
-        nodeMap,
-        dragPositions,
-        layoutEpoch: 0,
-        history: pushSnapshot(state.history, snapshotOf(state)),
-        future: [],
-      };
     }
     case "UPDATE_SELECTED_NODE": {
       const { id } = action.payload;
@@ -235,13 +209,10 @@ export default function canvasReducer(state: StoreState, action: CanvasAction): 
       const flow = new Flow(state.flow);
       if (!flow.hasNode(id)) return state;
 
-      // 单选语义：点击未选中节点时仅选中它，点击已选中节点时取消选中
+      // 单选语义：点击未选中节点时仅选中它；已选中节点保持选中。
+      if (state.selectedNodes.size === 1 && state.selectedNodes.has(id)) return state;
       const selectedNodes = new Set<string>();
-      if (state.selectedNodes.has(id)) {
-        selectedNodes.delete(id);
-      } else {
-        selectedNodes.add(id);
-      }
+      selectedNodes.add(id);
       return { ...state, selectedNodes };
     }
     case "CLEAR_SELECTION": {
@@ -281,9 +252,6 @@ export default function canvasReducer(state: StoreState, action: CanvasAction): 
     case "CLEAR_HISTORY": {
       if (state.history.length === 0 && state.future.length === 0) return state;
       return { ...state, history: [], future: [] };
-    }
-    case "FORCE_LAYOUT": {
-      return { ...state, layoutEpoch: state.layoutEpoch + 1 };
     }
     default: {
       return state;

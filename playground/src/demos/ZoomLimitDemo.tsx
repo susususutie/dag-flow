@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { DAGCanvas } from "dag-flow";
+import { DagFlow } from "dag-flow";
 import { BASIC_FLOW, BASIC_NODES, nodeTypes } from "./shared.tsx";
 
 /** minZoom / maxZoom：缩放边界钳制，滚轮缩放与 zoomIn/zoomOut 均不超过范围 */
@@ -39,7 +39,7 @@ export default function ZoomLimitDemo() {
         </span>
       </div>
       <div className="demo-canvas">
-        <DAGCanvas
+        <DagFlow
           defaultNodes={BASIC_NODES}
           defaultFlow={BASIC_FLOW}
           nodeTypes={nodeTypes}

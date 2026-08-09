@@ -14,6 +14,7 @@ export default function Viewport({ children }: { children: ReactNode }) {
       style={{ transform: `translate(${x}px, ${y}px) scale(${zoom})` }}
     >
       {children}
+      <div className="dag-flow__viewport-portal" />
     </div>
   );
 }

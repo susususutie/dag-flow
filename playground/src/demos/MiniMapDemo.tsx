@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { DAGCanvas, MiniMap } from "dag-flow";
+import { DagFlow, MiniMap } from "dag-flow";
 import { BASIC_FLOW, BASIC_NODES, nodeTypes } from "./shared.tsx";
 
 /** MiniMap：pannable / zoomable / autoShow / 尺寸配置 */
@@ -52,7 +52,7 @@ export default function MiniMapDemo() {
         </label>
       </div>
       <div className="demo-canvas">
-        <DAGCanvas
+        <DagFlow
           defaultNodes={BASIC_NODES}
           defaultFlow={BASIC_FLOW}
           nodeTypes={nodeTypes}
@@ -66,7 +66,7 @@ export default function MiniMapDemo() {
             position="bottom-right"
             {...sizeMap[size]}
           />
-        </DAGCanvas>
+        </DagFlow>
       </div>
     </div>
   );

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { DAGCanvas, Controls } from "dag-flow";
+import { DagFlow, Controls } from "dag-flow";
 import { BASIC_FLOW, BASIC_NODES, nodeTypes } from "./shared.tsx";
 
 /** Controls：showZoom / zoomStep 配置 */
@@ -32,7 +32,7 @@ export default function ControlsDemo() {
         </label>
       </div>
       <div className="demo-canvas">
-        <DAGCanvas
+        <DagFlow
           defaultNodes={BASIC_NODES}
           defaultFlow={BASIC_FLOW}
           nodeTypes={nodeTypes}
@@ -40,7 +40,7 @@ export default function ControlsDemo() {
           fitViewOptions={{ padding: 40 }}
         >
           <Controls showZoom={showZoom} zoomStep={zoomStep} position="top-left" />
-        </DAGCanvas>
+        </DagFlow>
       </div>
     </div>
   );

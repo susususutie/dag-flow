@@ -9,7 +9,7 @@ interface WrapperProps extends CanvasProviderProps {
 }
 
 /**
- * 复用外层 DAGProvider 的 store；缺少外层 store 时为 DAGCanvas 创建内部 store。
+ * 复用外层 DagFlowProvider 的 store；缺少外层 store 时创建内部 store。
  */
 export default function Wrapper(props: WrapperProps) {
   const instance = useContext(CanvasInstanceContext);

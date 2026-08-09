@@ -6,6 +6,6 @@ import type { CanvasAction } from "../types/index.ts";
 export default function useCanvasDispatch(): (action: CanvasAction) => void {
   const dispatch = useContext(CanvasDispatchContext);
   if (!dispatch)
-    throw new Error("useCanvasDispatch must be used within a DAGProvider or DAGCanvas");
+    throw new Error("useCanvasDispatch must be used within a DagFlowProvider or DagFlow");
   return dispatch;
 }

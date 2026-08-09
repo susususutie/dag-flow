@@ -9,6 +9,6 @@ import type { CanvasInteraction } from "../types/index.ts";
 export default function useCanvasInteraction(): CanvasInteraction {
   const interaction = useContext(InteractionContext);
   if (!interaction)
-    throw new Error("useCanvasInteraction must be used within a DAGProvider or DAGCanvas");
+    throw new Error("useCanvasInteraction must be used within a DagFlowProvider or DagFlow");
   return interaction;
 }

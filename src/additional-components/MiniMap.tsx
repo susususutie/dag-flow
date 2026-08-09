@@ -1,4 +1,4 @@
-import { useMemo, useRef } from "react";
+import { useCallback, useMemo, useRef } from "react";
 import type { CSSProperties } from "react";
 import useCanvasState from "../hooks/useCanvasState.ts";
 import useCanvasDispatch from "../hooks/useCanvasDispatch.ts";
@@ -46,14 +46,15 @@ export default function MiniMap(props: MiniMapProps) {
     position = "bottom-right",
   } = props;
 
-  const { uid, flow, nodeDimensions, nodeMap, computedPositions, dragPositions } = useCanvasState();
+  const { uid, flow, nodeDimensions, nodeMap } = useCanvasState();
   const { x, y, zoom } = useCanvasTransform();
   const dispatch = useCanvasDispatch();
   const dispatchOnAnimationFrame = useRafCanvasDispatch();
 
   const layoutRef = useRef<HTMLDivElement>(null);
 
-  const containerSize = useSize(document.getElementById(uid));
+  const getContainer = useCallback(() => document.getElementById(uid), [uid]);
+  const containerSize = useSize(getContainer);
   const minimapRef = useRef<HTMLDivElement>(null);
   const minimapWrapperSize = useSize(minimapRef);
 
@@ -63,13 +64,12 @@ export default function MiniMap(props: MiniMapProps) {
     for (const id of allNodes) {
       const dims = nodeDimensions.get(id);
       if (!dims?.width || !dims.height) continue;
-      const pos =
-        dragPositions?.get(id) ?? nodeMap?.get(id)?.position ?? computedPositions?.get(id);
+      const pos = nodeMap?.get(id)?.position;
       if (!pos) continue;
       list.push({ id, x: pos.x, y: pos.y, width: dims.width, height: dims.height });
     }
     return list;
-  }, [flow, nodeDimensions, nodeMap, computedPositions, dragPositions]);
+  }, [flow, nodeDimensions, nodeMap]);
   const flowOriginSize = useMemo(
     () =>
       nodes.reduce(
@@ -99,22 +99,21 @@ export default function MiniMap(props: MiniMapProps) {
     return null;
   }, [originWidth, originHeight, minimapWrapperSize?.width, minimapWrapperSize?.height]);
 
-  const nodeElements = useMemo(
-    () =>
-      nodes.map((node) => (
-        <div
-          key={node.id}
-          className="dag-flow-minimap__node"
-          style={{
-            left: node.x * flowScale!,
-            top: node.y * flowScale!,
-            width: node.width * flowScale!,
-            height: node.height * flowScale!,
-          }}
-        />
-      )),
-    [flowScale, nodes],
-  );
+  const nodeElements = useMemo(() => {
+    if (flowScale === null) return [];
+    return nodes.map((node) => (
+      <div
+        key={node.id}
+        className="dag-flow-minimap__node"
+        style={{
+          left: node.x * flowScale,
+          top: node.y * flowScale,
+          width: node.width * flowScale,
+          height: node.height * flowScale,
+        }}
+      />
+    ));
+  }, [flowScale, nodes]);
 
   const isDraggingRef = useRef(false);
   const dragLastRef = useRef({ x: 0, y: 0 });
@@ -126,14 +125,14 @@ export default function MiniMap(props: MiniMapProps) {
   if (hide && autoShow) return null;
 
   const handleClick = (e: React.MouseEvent) => {
-    if (!pannable) return;
+    if (!pannable || !flowScale || !containerSize) return;
     e.stopPropagation();
     const rect = layoutRef.current?.getBoundingClientRect();
     if (!rect) return;
     const clickX = e.clientX - rect.left;
     const clickY = e.clientY - rect.top;
-    const transformX = (-clickX / flowScale!) * zoom + containerSize!.width / 2;
-    const transformY = (-clickY / flowScale!) * zoom + containerSize!.height / 2;
+    const transformX = (-clickX / flowScale) * zoom + containerSize.width / 2;
+    const transformY = (-clickY / flowScale) * zoom + containerSize.height / 2;
     dispatch({ type: "PAN", payload: { x: transformX, y: transformY } });
   };
   const handlePointerDown = (e: React.PointerEvent) => {
@@ -145,14 +144,14 @@ export default function MiniMap(props: MiniMapProps) {
     e.preventDefault();
   };
   const handlePointerMove = (e: React.PointerEvent) => {
-    if (!pannable || !isDraggingRef.current || !dispatch) return;
+    if (!pannable || !isDraggingRef.current || !dispatch || !flowScale) return;
     const dx = e.clientX - dragLastRef.current.x;
     const dy = e.clientY - dragLastRef.current.y;
     if (dx === 0 && dy === 0) return;
     dragLastRef.current = { x: e.clientX, y: e.clientY };
 
-    const canvasDx = -(dx / flowScale!) * zoom;
-    const canvasDy = -(dy / flowScale!) * zoom;
+    const canvasDx = -(dx / flowScale) * zoom;
+    const canvasDy = -(dy / flowScale) * zoom;
 
     dispatchOnAnimationFrame({ type: "PAN_BY", payload: { dx: canvasDx, dy: canvasDy } });
   };
@@ -190,7 +189,7 @@ export default function MiniMap(props: MiniMapProps) {
       onWheel={handleWheel}
     >
       <div ref={minimapRef} className="dag-flow-minimap__center">
-        {flowScale ? (
+        {flowScale && containerSize ? (
           <div
             ref={layoutRef}
             className="dag-flow-minimap__layout"
@@ -213,8 +212,8 @@ export default function MiniMap(props: MiniMapProps) {
               }}
               style={{
                 cursor: pannable ? "move" : "default",
-                width: containerSize!.width * flowScale,
-                height: containerSize!.height * flowScale,
+                width: containerSize.width * flowScale,
+                height: containerSize.height * flowScale,
                 transform: `translate(${(-x * flowScale) / zoom}px, ${(-y * flowScale) / zoom}px) scale(${1 / zoom})`,
               }}
             />

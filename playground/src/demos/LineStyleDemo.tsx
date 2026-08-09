@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { DAGCanvas } from "dag-flow";
+import { DagFlow } from "dag-flow";
+import type { CSSProperties } from "react";
 import { BASIC_FLOW, BASIC_NODES, nodeTypes } from "./shared.tsx";
 
 const LINE_COLORS = [
@@ -10,30 +11,30 @@ const LINE_COLORS = [
   { name: "橙色", value: "#fa8c16" },
 ];
 
-/** lineWidth / lineColor：连线粗细与颜色实时调节 */
+/** CSS 变量：连线粗细与颜色实时调节 */
 export default function LineStyleDemo() {
-  const [lineWidth, setLineWidth] = useState(2);
-  const [lineColor, setLineColor] = useState(LINE_COLORS[0].value);
+  const [edgeStrokeWidth, setEdgeStrokeWidth] = useState(2);
+  const [edgeStroke, setEdgeStroke] = useState(LINE_COLORS[0].value);
 
   return (
     <div className="demo-scene">
       <div className="demo-controls">
         <label>
-          lineWidth
+          --dag-flow-edge-stroke-width
           <input
             type="range"
             min={1}
             max={8}
-            value={lineWidth}
-            onChange={(e) => setLineWidth(Number(e.target.value))}
+            value={edgeStrokeWidth}
+            onChange={(e) => setEdgeStrokeWidth(Number(e.target.value))}
           />
-          <span className="demo-value">{lineWidth}px</span>
+          <span className="demo-value">{edgeStrokeWidth}px</span>
         </label>
         {LINE_COLORS.map((item) => (
           <button
             key={item.value}
-            className={lineColor === item.value ? "demo-chip demo-chip--active" : "demo-chip"}
-            onClick={() => setLineColor(item.value)}
+            className={edgeStroke === item.value ? "demo-chip demo-chip--active" : "demo-chip"}
+            onClick={() => setEdgeStroke(item.value)}
           >
             <span
               style={{
@@ -49,12 +50,16 @@ export default function LineStyleDemo() {
         ))}
       </div>
       <div className="demo-canvas">
-        <DAGCanvas
+        <DagFlow
           defaultNodes={BASIC_NODES}
           defaultFlow={BASIC_FLOW}
           nodeTypes={nodeTypes}
-          lineWidth={lineWidth}
-          lineColor={lineColor}
+          style={
+            {
+              "--dag-flow-edge-stroke-width": edgeStrokeWidth,
+              "--dag-flow-edge-stroke": edgeStroke,
+            } as CSSProperties
+          }
           fitView
           fitViewOptions={{ padding: 60, horizontalAlign: "left", verticalAlign: "top" }}
         />

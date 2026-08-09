@@ -1,11 +1,15 @@
-import { useState } from "react";
-import { DAGCanvas } from "dag-flow";
-import { BASIC_FLOW, BASIC_NODES, nodeTypes } from "./shared.tsx";
+import { useMemo, useState } from "react";
+import { createDefaultLayoutEngine, DagFlow, useDAGState } from "dag-flow";
+import { BASIC_FLOW, BASIC_NODES, LayoutRunner, nodeTypes } from "./shared.tsx";
 
-/** hGap / vGap：节点水平与垂直间距实时调节 */
 export default function GapDemo() {
   const [hGap, setHGap] = useState(160);
   const [vGap, setVGap] = useState(16);
+  const { nodes, flow, setDAG, onNodesChange, onFlowChange } = useDAGState({
+    nodes: BASIC_NODES,
+    flow: BASIC_FLOW,
+  });
+  const engine = useMemo(() => createDefaultLayoutEngine({ hGap, vGap }), [hGap, vGap]);
 
   return (
     <div className="demo-scene">
@@ -17,7 +21,7 @@ export default function GapDemo() {
             min={8}
             max={300}
             value={hGap}
-            onChange={(e) => setHGap(Number(e.target.value))}
+            onChange={(event) => setHGap(Number(event.target.value))}
           />
           <span className="demo-value">{hGap}px</span>
         </label>
@@ -28,21 +32,22 @@ export default function GapDemo() {
             min={4}
             max={80}
             value={vGap}
-            onChange={(e) => setVGap(Number(e.target.value))}
+            onChange={(event) => setVGap(Number(event.target.value))}
           />
           <span className="demo-value">{vGap}px</span>
         </label>
       </div>
       <div className="demo-canvas">
-        <DAGCanvas
-          defaultNodes={BASIC_NODES}
-          defaultFlow={BASIC_FLOW}
+        <DagFlow
+          nodes={nodes}
+          flow={flow}
           nodeTypes={nodeTypes}
-          hGap={hGap}
-          vGap={vGap}
-          fitView
-          fitViewOptions={{ padding: 40, horizontalAlign: "left", verticalAlign: "top" }}
-        />
+          layoutEngine={engine}
+          onNodesChange={onNodesChange}
+          onFlowChange={onFlowChange}
+        >
+          <LayoutRunner engine={engine} nodes={nodes} setDAG={setDAG} />
+        </DagFlow>
       </div>
     </div>
   );

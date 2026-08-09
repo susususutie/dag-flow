@@ -1,5 +1,5 @@
 import { useCallback, useState } from "react";
-import { DAGCanvas, DAGProvider, applyNodeChanges, Flow } from "dag-flow";
+import { DagFlow, DagFlowProvider, applyNodeChanges, Flow } from "dag-flow";
 import type { DAGNode, FlowModel, NodeChanges } from "dag-flow";
 
 const NODE_POOL = ["A", "B", "C", "D", "E", "F"];
@@ -82,9 +82,9 @@ export default function NodeEditorDemo() {
   }, []);
 
   return (
-    <DAGProvider>
+    <DagFlowProvider>
       <div className="demo-canvas">
-        <DAGCanvas
+        <DagFlow
           nodes={nodes}
           flow={flow}
           onNodesChange={onNodesChange}
@@ -104,6 +104,6 @@ export default function NodeEditorDemo() {
         <button onClick={renameFirst}>重命名 A</button>
         <button onClick={removeSelected}>删除选中</button>
       </div>
-    </DAGProvider>
+    </DagFlowProvider>
   );
 }

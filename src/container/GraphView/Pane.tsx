@@ -74,15 +74,7 @@ export default function Pane({ children }: { children: ReactNode }) {
     (e: React.MouseEvent) => {
       if (e.button !== 0) return;
 
-      // 判断触发元素或其所有父元素是否有 data-nopan 属性
-      let el = e.target as HTMLElement | null;
-      while (el && el.dataset.nopan === undefined) {
-        el = el.parentElement;
-        if (panRef.current === el) break;
-      }
-      if (el?.dataset?.nopan) {
-        return;
-      }
+      if ((e.target as Element).closest("[data-nopan]")) return;
 
       downPosRef.current = { x: e.clientX, y: e.clientY };
       if (!panOnDrag || !shouldPan(e, panDragModifierRef.current)) return;

@@ -1,6 +1,5 @@
-import type { NodeComponentProps } from "./nodes.ts";
+import type { DAGNode, NodeComponentProps, XYPosition } from "./nodes.ts";
 import type { FlowModel } from "./flow.ts";
-import type { XYPosition } from "./nodes.ts";
 
 /** 画布视口状态（React Flow viewport） */
 export interface Viewport {
@@ -11,6 +10,9 @@ export interface Viewport {
 
 /** 缩放/平移修饰键 */
 export type Modifier = "none" | "ctrl" | "meta";
+
+/** DAG 连线方向；只控制统一 Handle 和边端点，不配置布局算法。 */
+export type FlowDirection = "horizontal" | "vertical";
 
 /** 附加组件（Controls / MiniMap）在画布内的预设停靠位置；"none" 表示不做定位（由外部容器布局） */
 export type PanelPosition = "top-left" | "top-right" | "bottom-left" | "bottom-right" | "none";
@@ -43,28 +45,24 @@ export interface FitViewOptions {
   verticalAlign?: "top" | "center" | "bottom";
 }
 
-/** 布局配置（默认路由算法的控制参数；自定义引擎可忽略不需要的字段） */
-export interface LayoutConfig {
-  hGap: number;
-  vGap: number;
-  lineWidth: number;
-  lineColor: string;
-}
-
-/** 布局引擎入参 */
-export interface LayoutEngineOptions {
-  /** 已测量节点尺寸（未测量节点由引擎回退默认 150×40） */
+/** 布局引擎输入 */
+export interface LayoutInput {
+  nodes: DAGNode[];
+  flow: FlowModel;
   dimensions: Map<string, { width: number; height: number }>;
-  /** 用户固定位置（焊死节点，引擎不得覆盖） */
-  pinned: Map<string, XYPosition>;
-  /** 布局配置；默认引擎消费 hGap/vGap，自定义引擎按需忽略 */
-  config: LayoutConfig;
 }
 
-/** 布局引擎：flow 拓扑 + 测量/固定 → 自动布局坐标。返回缺席节点不渲染（回退固定位置） */
-export type LayoutEngine = (
-  flow: FlowModel,
-  options: LayoutEngineOptions,
-) => Map<string, XYPosition>;
+/** 布局引擎内部结果 */
+export interface LayoutResult {
+  positions: Map<string, XYPosition>;
+}
+
+/** 布局引擎只计算坐标，不修改画布状态 */
+export type LayoutEngine = (input: LayoutInput) => LayoutResult | Promise<LayoutResult>;
+
+export interface LayoutOptions {
+  engine?: LayoutEngine;
+  signal?: AbortSignal;
+}
 
 export type { NodeComponentProps };

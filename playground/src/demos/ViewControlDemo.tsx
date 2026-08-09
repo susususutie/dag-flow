@@ -1,17 +1,17 @@
 import { useCallback, useState } from "react";
-import { DAGCanvas, DAGProvider, useDAGInstance, useViewport } from "dag-flow";
+import { DagFlow, DagFlowProvider, useDAGInstance, useViewport } from "dag-flow";
 import { BASIC_FLOW, BASIC_NODES, nodeTypes } from "./shared.tsx";
 
 /** 视口实例 API：fitView / zoomIn / zoomOut / zoomTo / setViewport / getViewport */
 export default function ViewControlDemo() {
   return (
-    <DAGProvider>
+    <DagFlowProvider>
       <div className="demo-scene">
         <div className="demo-controls">
           <ControlsBar />
         </div>
         <div className="demo-canvas">
-          <DAGCanvas
+          <DagFlow
             defaultNodes={BASIC_NODES}
             defaultFlow={BASIC_FLOW}
             nodeTypes={nodeTypes}
@@ -19,11 +19,11 @@ export default function ViewControlDemo() {
             fitViewOptions={{ padding: 40 }}
           >
             <ViewportBar />
-          </DAGCanvas>
+          </DagFlow>
         </div>
         <LogBar />
       </div>
-    </DAGProvider>
+    </DagFlowProvider>
   );
 }
 

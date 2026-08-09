@@ -10,6 +10,6 @@ import type { DAGInstance } from "../types/index.ts";
  */
 export default function useDAGInstance(): DAGInstance {
   const instance = useContext(DAGInstanceContext);
-  if (!instance) throw new Error("useDAGInstance must be used within a DAGProvider or DAGCanvas");
+  if (!instance) throw new Error("useDAGInstance must be used within a DagFlowProvider or DagFlow");
   return instance;
 }

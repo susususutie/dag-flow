@@ -7,6 +7,6 @@ import type { FlowModel } from "../types/index.ts";
  */
 export default function useFlow(): FlowModel {
   const flow = useContext(DAGFlowContext);
-  if (!flow) throw new Error("useFlow must be used within a DAGProvider or DAGCanvas");
+  if (!flow) throw new Error("useFlow must be used within a DagFlowProvider or DagFlow");
   return flow;
 }

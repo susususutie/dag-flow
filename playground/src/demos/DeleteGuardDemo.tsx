@@ -1,5 +1,5 @@
 import { useCallback, useState } from "react";
-import { DAGCanvas } from "dag-flow";
+import { DagFlow } from "dag-flow";
 import type { DAGNode, OnBeforeDeleteResult } from "dag-flow";
 import { BASIC_FLOW, BASIC_NODES, nodeTypes } from "./shared.tsx";
 
@@ -48,7 +48,7 @@ export default function DeleteGuardDemo() {
       </div>
       <div className="demo-controlled" style={{ flex: 1, minHeight: 0 }}>
         <div className="demo-canvas">
-          <DAGCanvas
+          <DagFlow
             defaultNodes={BASIC_NODES}
             defaultFlow={BASIC_FLOW}
             nodeTypes={nodeTypes}

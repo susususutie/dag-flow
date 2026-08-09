@@ -17,9 +17,9 @@
   ],
   "type": "module",
   "exports": {
-    ".": "./dist/index.mjs",
+    ".": "./src/index.ts",
     "./package.json": "./package.json",
-    "./style.css": "./dist/style.css"
+    "./style.css": "./src/styles/style.css"
   },
   "publishConfig": {
     "exports": {

@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 import canvasReducer from "../reducer.ts";
 import initialState from "../initialState.ts";
-import type { StoreState, XYPosition } from "../../types/index.ts";
+import { assertValidDAG, createNodeMap } from "../utils.ts";
+import type { StoreState } from "../../types/index.ts";
+import { syncCanvasProps } from "../utils.ts";
 
 function stateWith(overrides: Partial<StoreState>): StoreState {
   return { ...initialState, ...overrides } as StoreState;
@@ -12,6 +14,28 @@ function node(id: string, extra: Record<string, unknown> = {}) {
 }
 
 describe("canvasReducer 坐标化 state", () => {
+  it("createNodeMap 为缺省坐标补充原点", () => {
+    const positioned = node("b", { position: { x: 3, y: 4 } });
+    const nodeMap = createNodeMap([node("a"), positioned]);
+    expect(nodeMap.get("a")?.position).toEqual({ x: 0, y: 0 });
+    expect(nodeMap.get("b")).toBe(positioned);
+  });
+
+  it("拒绝重复或与 flow 不一致的节点 ID", () => {
+    expect(() => createNodeMap([node("a"), node("a")])).toThrow("duplicate node IDs");
+    expect(() => assertValidDAG(createNodeMap([node("a")]), ["b"])).toThrow("missing from flow");
+    expect(() => assertValidDAG(createNodeMap([node("a")]), ["a", "a"])).toThrow(
+      "duplicate node IDs",
+    );
+  });
+
+  it("syncCanvasProps 在复用 DagFlowProvider 时同步 nodeTypes", () => {
+    const CustomNode = () => null;
+    const nodeTypes = { custom: CustomNode };
+    const s = syncCanvasProps(stateWith({}), { nodeTypes }, false);
+    expect(s.nodeTypes).toBe(nodeTypes);
+  });
+
   it("SET_NODE_DIMENSIONS 合并尺寸，跳过相同值", () => {
     let s = stateWith({ nodeDimensions: new Map([["a", { width: 100, height: 40 }]]) });
     s = canvasReducer(s, {
@@ -25,67 +49,57 @@ describe("canvasReducer 坐标化 state", () => {
     expect(s.nodeDimensions.get("b")).toEqual({ width: 200, height: 80 });
   });
 
-  it("SET_COMPUTED_POSITIONS 整体替换", () => {
-    const positions = new Map<string, XYPosition>([["a", { x: 10, y: 20 }]]);
-    const s = canvasReducer(stateWith({}), { type: "SET_COMPUTED_POSITIONS", payload: positions });
-    expect(s.computedPositions.get("a")).toEqual({ x: 10, y: 20 });
-  });
-
-  it("UPDATE_NODE_POSITION 写入 dragPositions（拖动 overlay）", () => {
-    let s = stateWith({ nodeMap: new Map([["a", node("a")]]) });
+  it("UPDATE_NODE_POSITION 直接更新 node.position", () => {
+    const original = node("a", { position: { x: 0, y: 0 } });
+    let s = stateWith({ nodeMap: new Map([["a", original]]) });
     s = canvasReducer(s, {
       type: "UPDATE_NODE_POSITION",
       payload: { id: "a", position: { x: 5, y: 9 } },
     });
-    expect(s.dragPositions.get("a")).toEqual({ x: 5, y: 9 });
-    expect(s.nodeMap.get("a")?.position).toBeUndefined();
+    expect(s.nodeMap.get("a")?.position).toEqual({ x: 5, y: 9 });
+    expect(s.nodeMap.get("a")).not.toBe(original);
   });
 
-  it("COMMIT_NODE_POSITIONS 焊死：position 并入 nodeMap 并清理 dragPositions", () => {
-    let s = stateWith({ nodeMap: new Map([["a", node("a")]]) });
+  it("重复点击已选节点时保持选中", () => {
+    const nodeMap = createNodeMap([node("a")]);
+    const selectedNodes = new Set(["a"]);
+    const s = stateWith({ nodeMap, flow: ["a"], selectedNodes });
+    expect(canvasReducer(s, { type: "UPDATE_SELECTED_NODE", payload: { id: "a" } })).toBe(s);
+  });
+
+  it("一次拖拽只记录一条可撤销的起点快照", () => {
+    let s = stateWith({
+      nodeMap: createNodeMap([node("a", { position: { x: 0, y: 0 } })]),
+    });
     s = canvasReducer(s, {
       type: "UPDATE_NODE_POSITION",
-      payload: { id: "a", position: { x: 1, y: 2 } },
+      payload: { id: "a", position: { x: 4, y: 6 }, dragging: true },
     });
+    expect(s.history).toHaveLength(0);
+
     s = canvasReducer(s, {
-      type: "COMMIT_NODE_POSITIONS",
-      payload: { positions: new Map([["a", { x: 1, y: 2 }]]), clearIds: ["a"] },
+      type: "UPDATE_NODE_POSITION",
+      payload: {
+        id: "a",
+        position: { x: 4, y: 6 },
+        dragging: false,
+        origin: { x: 0, y: 0 },
+      },
     });
-    expect(s.nodeMap.get("a")?.position).toEqual({ x: 1, y: 2 });
-    expect(s.dragPositions.has("a")).toBe(false);
+    expect(s.history).toHaveLength(1);
+    expect(s.history[0].nodeMap.get("a")?.position).toEqual({ x: 0, y: 0 });
+
+    s = canvasReducer(s, { type: "UNDO" });
+    expect(s.nodeMap.get("a")?.position).toEqual({ x: 0, y: 0 });
   });
 
-  it("DELETE_NODE 清理 nodeDimensions/computedPositions/dragPositions", () => {
+  it("DELETE_NODE 清理节点尺寸", () => {
     let s = stateWith({
       nodeMap: new Map([["a", node("a")]]),
       nodeDimensions: new Map([["a", { width: 10, height: 10 }]]),
-      computedPositions: new Map([["a", { x: 0, y: 0 }]]),
-      dragPositions: new Map([["a", { x: 0, y: 0 }]]),
     });
     s = canvasReducer(s, { type: "DELETE_NODE", payload: { ids: ["a"] } });
     expect(s.nodeDimensions.has("a")).toBe(false);
-    expect(s.computedPositions.has("a")).toBe(false);
-    expect(s.dragPositions.has("a")).toBe(false);
     expect(s.nodeMap.has("a")).toBe(false);
-  });
-
-  it("CLEAR_NODE_POSITIONS 仅清指定 id（回弹）", () => {
-    let s = stateWith({
-      nodeMap: new Map([
-        ["a", node("a")],
-        ["b", node("b")],
-      ]),
-    });
-    s = canvasReducer(s, {
-      type: "UPDATE_NODE_POSITION",
-      payload: { id: "a", position: { x: 1, y: 1 } },
-    });
-    s = canvasReducer(s, {
-      type: "UPDATE_NODE_POSITION",
-      payload: { id: "b", position: { x: 2, y: 2 } },
-    });
-    s = canvasReducer(s, { type: "CLEAR_NODE_POSITIONS", payload: { ids: ["a"] } });
-    expect(s.dragPositions.has("a")).toBe(false);
-    expect(s.dragPositions.get("b")).toEqual({ x: 2, y: 2 });
   });
 });

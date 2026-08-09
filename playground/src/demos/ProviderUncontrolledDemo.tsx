@@ -1,16 +1,23 @@
-import { DAGCanvas, DAGProvider, useFlow, useNode, useNodes, useViewport } from "dag-flow";
+import {
+  DagFlow,
+  DagFlowProvider,
+  useFlow,
+  useNodes,
+  useNodesInitialized,
+  useViewport,
+} from "dag-flow";
 import { BASIC_FLOW, BASIC_NODES, nodeTypes } from "./shared.tsx";
 
-/** DAGProvider 非受控：useNodes / useFlow / useViewport 读取画布状态；useNode 需在自定义节点内使用 */
+/** DagFlowProvider 非受控：内层组件通过 hooks 读取画布状态。 */
 export default function ProviderUncontrolledDemo() {
   return (
-    <DAGProvider>
+    <DagFlowProvider>
       <div className="demo-controlled">
         <div className="demo-canvas">
-          <DAGCanvas
+          <DagFlow
             defaultNodes={BASIC_NODES}
             defaultFlow={BASIC_FLOW}
-            nodeTypes={{ ...nodeTypes, useNodeText: UseNodeTextNode }}
+            nodeTypes={nodeTypes}
             fitView
             fitViewOptions={{ padding: 40 }}
           />
@@ -19,18 +26,7 @@ export default function ProviderUncontrolledDemo() {
           <HooksSummary />
         </aside>
       </div>
-    </DAGProvider>
-  );
-}
-
-function UseNodeTextNode() {
-  const { data, id } = useNode();
-  const label = data?.label as string | undefined;
-  return (
-    <div className="demo-node" style={{ borderColor: "#1677ff" }}>
-      <b>useNode 读取</b>
-      <div>{label ?? id}</div>
-    </div>
+    </DagFlowProvider>
   );
 }
 
@@ -38,6 +34,7 @@ function HooksSummary() {
   const nodes = useNodes();
   const flow = useFlow();
   const viewport = useViewport();
+  const nodesInitialized = useNodesInitialized();
 
   return (
     <>
@@ -49,6 +46,8 @@ function HooksSummary() {
       <div>
         x={viewport.x.toFixed(0)} y={viewport.y.toFixed(0)} zoom={viewport.zoom.toFixed(2)}
       </div>
+      <h3>useNodesInitialized</h3>
+      <div>{nodesInitialized ? "节点尺寸已就绪" : "正在测量节点"}</div>
     </>
   );
 }

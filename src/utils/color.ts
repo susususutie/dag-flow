@@ -189,10 +189,3 @@ export function isValidColor(value: string): boolean {
   if (/^(rgb|rgba|hsl|hsla|hwb|lab|lch|oklab|oklch|color)\(/i.test(trimmed)) return true;
   return CSS_NAMED_COLORS.has(trimmed.toLowerCase());
 }
-
-/** 解析连线颜色：状态关键词返回对应色，合法颜色原样返回，否则回退到默认色 */
-export function resolveLineColor(value: string | undefined): string {
-  if (value && statusColorMap[value as StatusColor]) return statusColorMap[value as StatusColor];
-  if (value && isValidColor(value)) return value;
-  return statusColorMap.default;
-}

@@ -1,20 +1,7 @@
-import { memo } from "react";
 import type { NodeComponentProps } from "../../types/index.ts";
 
-/** 通用节点组件；复杂节点通过 nodeTypes 注册表提供 */
-function DefaultNode(props: NodeComponentProps) {
-  const { id, data, selectable, selected } = props;
-
-  const className = ["dag-flow-node"]
-    .concat(selectable ? ["dag-flow-node--selectable"] : [])
-    .concat(selected ? ["dag-flow-node--selected"] : [])
-    .join(" ");
-
-  return (
-    <div className={className}>
-      {data && "label" in data ? String((data as { label?: unknown }).label) : id}
-    </div>
-  );
+/** 默认节点只渲染 label，尺寸和视觉样式由节点外层或调用方控制。 */
+export default function DefaultNode({ id, data }: NodeComponentProps) {
+  const label = data && "label" in data ? (data as { label?: unknown }).label : undefined;
+  return typeof label === "string" || typeof label === "number" ? label : id;
 }
-
-export default memo(DefaultNode);

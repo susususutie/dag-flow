@@ -1,4 +1,10 @@
-export type { DAGNode, NodeComponentProps, NodeTypes, XYPosition } from "./nodes.ts";
+export type {
+  DAGNode,
+  NodeComponentProps,
+  NodeTypes,
+  PositionedDAGNode,
+  XYPosition,
+} from "./nodes.ts";
 export type {
   FlowModel,
   FlowPath,
@@ -8,7 +14,13 @@ export type {
   FlowChangeReason,
 } from "./flow.ts";
 export type { NodeChange, NodeChanges } from "./changes.ts";
-export type { DAGInstance, DAGData, OnBeforeDeleteResult, ViewApi } from "./instance.ts";
+export type {
+  DAGInstance,
+  DAGData,
+  PositionedDAGData,
+  OnBeforeDeleteResult,
+  ViewApi,
+} from "./instance.ts";
 export { Position } from "./edges.ts";
 export type { EdgeProps, EdgeSpec } from "./edges.ts";
 export type {
@@ -22,9 +34,11 @@ export type {
 } from "./store.ts";
 export type {
   FitViewOptions,
-  LayoutConfig,
+  FlowDirection,
   LayoutEngine,
-  LayoutEngineOptions,
+  LayoutInput,
+  LayoutOptions,
+  LayoutResult,
   Modifier,
   PanelPosition,
   NodeMeasure,

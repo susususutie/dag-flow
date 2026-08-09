@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState } from "react";
-import { DAGCanvas, Background, Controls, MiniMap } from "dag-flow";
+import { DagFlow, Background, Controls, MiniMap } from "dag-flow";
 import type { DAGNode, FlowModel, NodeChanges, OnBeforeDeleteResult } from "dag-flow";
 
 const INITIAL_NODES: DAGNode[] = [
@@ -78,7 +78,7 @@ export default function ControlledDemo() {
   return (
     <div className="demo-controlled">
       <div className="demo-canvas">
-        <DAGCanvas
+        <DagFlow
           nodes={nodes}
           flow={flow}
           onNodesChange={onNodesChange}
@@ -94,7 +94,7 @@ export default function ControlledDemo() {
           <Background size={20} />
           <Controls />
           <MiniMap />
-        </DAGCanvas>
+        </DagFlow>
       </div>
       <aside className="demo-panel">
         <h3>受控数据</h3>

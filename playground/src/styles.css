@@ -99,11 +99,13 @@
 }
 
 .demo-actions {
+  position: absolute;
+  top: 16px;
+  right: 16px;
   display: flex;
   gap: 8px;
-  padding: 10px 20px;
+  padding: 12px;
   background: #fff;
-  border-top: 1px solid #f0f0f0;
 }
 
 .demo-actions button,
@@ -150,7 +152,7 @@
 
 .demo-status-bar {
   position: absolute;
-  right: 16px;
+  left: 16px;
   bottom: 16px;
   display: flex;
   gap: 16px;
@@ -161,6 +163,15 @@
   font-size: 12px;
   color: rgba(0, 0, 0, 0.65);
   z-index: 20;
+}
+
+.demo-viewport-marker {
+  padding: 4px 8px;
+  border: 1px dashed #1677ff;
+  background: rgba(255, 255, 255, 0.9);
+  color: #1677ff;
+  font-size: 12px;
+  white-space: nowrap;
 }
 
 .demo-controlled {

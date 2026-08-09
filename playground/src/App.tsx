@@ -21,7 +21,6 @@ import CustomNodesDemo from "./demos/CustomNodesDemo.tsx";
 import NodeEditorDemo from "./demos/NodeEditorDemo.tsx";
 import ProviderDemo from "./demos/ProviderDemo.tsx";
 import ProviderUncontrolledDemo from "./demos/ProviderUncontrolledDemo.tsx";
-import RendererDemo from "./demos/RendererDemo.tsx";
 import ControlsDemo from "./demos/ControlsDemo.tsx";
 import MiniMapDemo from "./demos/MiniMapDemo.tsx";
 import BackgroundDemo from "./demos/BackgroundDemo.tsx";
@@ -56,7 +55,7 @@ const SCENES: Array<{
     group: "交互",
     items: [
       { key: "interaction", label: "交互事件回调", render: <InteractionDemo /> },
-      { key: "selectable", label: "nodesSelectable", render: <SelectableDemo /> },
+      { key: "selectable", label: "节点选择与拖动", render: <SelectableDemo /> },
       { key: "delete-guard", label: "onBeforeDelete", render: <DeleteGuardDemo /> },
       { key: "pan-zoom-config", label: "缩放平移配置", render: <PanZoomConfigDemo /> },
       { key: "keyboard", label: "快捷键 复制/粘贴/撤销", render: <KeyboardDemo /> },
@@ -65,10 +64,10 @@ const SCENES: Array<{
   {
     group: "布局与样式",
     items: [
-      { key: "gap", label: "hGap / vGap", render: <GapDemo /> },
-      { key: "line-style", label: "lineWidth / lineColor", render: <LineStyleDemo /> },
+      { key: "gap", label: "布局算法间距", render: <GapDemo /> },
+      { key: "line-style", label: "Edge CSS variables", render: <LineStyleDemo /> },
       { key: "custom-layout", label: "自定义布局引擎", render: <CustomLayoutDemo /> },
-      { key: "force-layout", label: "layout() 强制重排", render: <ForceLayoutDemo /> },
+      { key: "force-layout", label: "显式 layout()", render: <ForceLayoutDemo /> },
     ],
   },
   {
@@ -81,13 +80,12 @@ const SCENES: Array<{
   {
     group: "组织架构",
     items: [
-      { key: "provider", label: "DAGProvider 受控", render: <ProviderDemo /> },
+      { key: "provider", label: "DagFlowProvider 受控", render: <ProviderDemo /> },
       {
         key: "provider-uncontrolled",
-        label: "DAGProvider 非受控",
+        label: "DagFlowProvider 非受控",
         render: <ProviderUncontrolledDemo />,
       },
-      { key: "renderer", label: "DAGRenderer 渲染器", render: <RendererDemo /> },
     ],
   },
   {

@@ -1,4 +1,4 @@
-import { memo, useCallback, useEffect, useRef } from "react";
+import { forwardRef, memo, useCallback, useEffect, useImperativeHandle, useRef } from "react";
 import type { ReactNode } from "react";
 import useCanvasState from "../../hooks/useCanvasState.ts";
 import useRafCanvasDispatch from "../../hooks/useRafCanvasDispatch.ts";
@@ -13,9 +13,14 @@ function shouldZoom(e: WheelEvent, zoomModifier: string): boolean {
 }
 
 /** 缩放层：监听滚轮，围绕鼠标位置缩放（对应 React Flow ZoomPane） */
-function ZoomPane({ children }: { children: ReactNode }) {
+interface ZoomPaneProps {
+  children: ReactNode;
+}
+
+const ZoomPane = forwardRef<HTMLDivElement, ZoomPaneProps>(function ZoomPane({ children }, ref) {
   const dispatchOnAnimationFrame = useRafCanvasDispatch();
   const containerRef = useRef<HTMLDivElement>(null);
+  useImperativeHandle(ref, () => containerRef.current as HTMLDivElement, []);
 
   const state = useCanvasState();
   const stateRef = useRef(state);
@@ -48,10 +53,10 @@ function ZoomPane({ children }: { children: ReactNode }) {
   }, [handleWheel, state.zoomOnScroll]);
 
   return (
-    <div ref={containerRef} className="dag-flow__zoom-pane">
+    <div ref={containerRef} className="dag-flow__renderer">
       {children}
     </div>
   );
-}
+});
 
 export default memo(ZoomPane);

@@ -26,8 +26,14 @@ export default function applyNodeChanges(changes: NodeChanges, nodes: DAGNode[])
       case "replace": {
         return nextNodes.map((node) => (node.id === change.id ? change.item : node));
       }
+      case "position": {
+        if (!change.position) return nextNodes;
+        return nextNodes.map((node) =>
+          node.id === change.id ? { ...node, position: change.position } : node,
+        );
+      }
       default: {
-        // position/dimensions 等不改变业务数据，镜像模式不处理
+        // dimensions 不写入公共节点数据
         return nextNodes;
       }
     }

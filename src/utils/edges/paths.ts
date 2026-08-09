@@ -84,6 +84,8 @@ function getControlWithCurvature(
       return [x1, y1 - calculateControlOffset(y1 - y2, c)];
     case Position.Bottom:
       return [x1, y1 + calculateControlOffset(y2 - y1, c)];
+    default:
+      return [x1, y1];
   }
 }
 
@@ -166,10 +168,15 @@ interface Point {
 }
 
 const handleDirections: Record<Position, Point> = {
-  [Position.Left]: { x: -1, y: 0 },
-  [Position.Right]: { x: 1, y: 0 },
+  [Position.TopLeft]: { x: -1, y: -1 },
   [Position.Top]: { x: 0, y: -1 },
+  [Position.TopRight]: { x: 1, y: -1 },
+  [Position.Left]: { x: -1, y: 0 },
+  [Position.Center]: { x: 0, y: 0 },
+  [Position.Right]: { x: 1, y: 0 },
+  [Position.BottomLeft]: { x: -1, y: 1 },
   [Position.Bottom]: { x: 0, y: 1 },
+  [Position.BottomRight]: { x: 1, y: 1 },
 };
 
 function getDirection(source: Point, sourcePosition: Position, target: Point) {

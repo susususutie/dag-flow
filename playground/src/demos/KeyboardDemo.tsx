@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { DAGCanvas, DAGProvider, useDAGInstance } from "dag-flow";
+import { DagFlow, DagFlowProvider, useDAGInstance } from "dag-flow";
 import { PARALLEL_FLOW, PARALLEL_NODES, nodeTypes } from "./shared.tsx";
 
 /**
@@ -10,13 +10,13 @@ import { PARALLEL_FLOW, PARALLEL_NODES, nodeTypes } from "./shared.tsx";
  */
 export default function KeyboardDemo() {
   return (
-    <DAGProvider>
+    <DagFlowProvider>
       <div className="demo-scene">
         <div className="demo-controls">
           <ActionsBar />
         </div>
         <div className="demo-canvas">
-          <DAGCanvas
+          <DagFlow
             defaultNodes={PARALLEL_NODES}
             defaultFlow={PARALLEL_FLOW}
             nodeTypes={nodeTypes}
@@ -30,7 +30,7 @@ export default function KeyboardDemo() {
           </span>
         </div>
       </div>
-    </DAGProvider>
+    </DagFlowProvider>
   );
 }
 

@@ -1,14 +1,26 @@
-/**
- * dag-flow 样式
- * 节点布局基于 flex + grid；连线由 EdgeLayer（SVG）基于测量坐标绘制，
- * 布局中的 .dag-flow-dom-line 仅承担节点间距占位，不渲染图形。
- *
- * 主题通过 CSS 变量换肤（--dag-flow-*），由 DAGCanvas 根容器注入默认值。
- */
+/** dag-flow 样式。静态默认主题变量定义在根组件上。 */
 
-/* ---------- 画布容器与图层 ---------- */
-
-.dag-flow__canvas {
+.dag-flow {
+  --dag-flow-node-color: inherit;
+  --dag-flow-node-border: 1px solid #ededed;
+  --dag-flow-node-border-selected: 1px solid #bbb;
+  --dag-flow-node-background-color: #fff;
+  --dag-flow-node-boxshadow:
+    0px 3.54px 4.55px 0px #00000005, 0px 3.54px 4.55px 0px #0000000d,
+    0px 0.51px 1.01px 0px #0000001a;
+  --dag-flow-node-boxshadow-hover: 0 1px 4px 1px rgba(0, 0, 0, 0.08);
+  --dag-flow-node-boxshadow-selected: 0 0 0 0.5px #1a192b;
+  --dag-flow-node-border-radius: 8px;
+  --dag-flow-edge-stroke: #b1b1b7;
+  --dag-flow-edge-stroke-width: 1;
+  --dag-flow-controls-button-border: 1px solid #d9d9d9;
+  --dag-flow-controls-button-background: #fff;
+  --dag-flow-controls-button-color: rgba(0, 0, 0, 0.88);
+  --dag-flow-controls-button-disabled-color: rgba(0, 0, 0, 0.25);
+  --dag-flow-minimap-background: #fff;
+  --dag-flow-minimap-border: 1px solid #d9d9d9;
+  --dag-flow-minimap-node-background: #1677ff;
+  --dag-flow-minimap-viewport-border: 1px solid #1677ff;
   position: relative;
   isolation: isolate;
   width: 100%;
@@ -24,17 +36,24 @@
   height: 100%;
 }
 
-.dag-flow__zoom-pane {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-}
-
 .dag-flow__viewport {
+  position: absolute;
+  inset: 0;
   overflow: visible;
   transform-origin: 0 0;
+}
+
+.dag-flow__renderer,
+.dag-flow__nodes {
+  position: absolute;
+  inset: 0;
+}
+
+.dag-flow__overlay-portal,
+.dag-flow__viewport-portal {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
 }
 
 /* ---------- 连线层（SVG） ---------- */
@@ -42,22 +61,17 @@
 .dag-flow__edges {
   position: absolute;
   inset: 0;
+  width: 100%;
+  height: 100%;
   pointer-events: none;
   overflow: visible;
   z-index: 0;
 }
 
-.dag-flow__edges svg {
-  display: block;
-  width: 100%;
-  height: 100%;
-  overflow: visible;
-}
-
 .dag-flow__edge-path {
   fill: none;
-  stroke: var(--dag-flow-line-color);
-  stroke-width: var(--dag-flow-line-width);
+  stroke: var(--dag-flow-edge-stroke);
+  stroke-width: var(--dag-flow-edge-stroke-width);
   stroke-linecap: round;
 }
 
@@ -76,91 +90,60 @@
 }
 
 .dag-flow__edge-path--selected {
-  stroke-width: calc(var(--dag-flow-line-width) + 2);
-}
-
-/* ---------- 连线占位 ---------- */
-
-.dag-flow-dom-line {
-  width: var(--dag-flow-h-gap);
-  flex-shrink: 0;
-  flex-grow: 0;
-  align-self: stretch;
-  position: relative;
-}
-
-/* ---------- 流程容器 ---------- */
-
-.dag-flow {
-  display: flex;
-  flex-direction: row;
-  align-items: stretch;
-  justify-content: flex-start;
-  width: fit-content;
-  height: fit-content;
-  flex-shrink: 0;
-  position: relative;
-}
-
-/* 中间步骤行（串行节点行，左右各一条连线） */
-.dag-flow-row-wrapper {
-  display: flex;
-  align-items: center;
-}
-
-/* 并行组内部的行间空隙（垂直连线区） */
-.dag-flow-row-space {
-  height: var(--dag-flow-v-gap);
-  flex-shrink: 0;
-  flex-grow: 0;
-  display: flex;
-  justify-content: space-between;
-}
-
-/* 单个并行路径行 */
-.dag-flow-row {
-  width: 100%;
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: flex-start;
-}
-
-/* ---------- 并行组 ---------- */
-
-.dag-flow-group-wrapper {
-  margin-right: var(--dag-flow-h-gap);
-  position: relative;
-  display: flex;
-  align-items: center;
-}
-
-.dag-flow-group-node {
-  position: relative;
-  display: grid;
-  grid-auto-flow: column;
+  stroke-width: calc(var(--dag-flow-edge-stroke-width) + 2);
 }
 
 /* ---------- 节点 ---------- */
 
-.dag-flow-node-wrapper {
+.dag-flow__node {
   position: absolute;
-  display: flex;
-  align-items: center;
-}
-
-/* 节点交互态（拖动/锁定） */
-.dag-flow-node--draggable {
-  touch-action: none;
-  cursor: grab;
-}
-
-.dag-flow-node--locked {
+  user-select: none;
+  pointer-events: all;
+  transform-origin: 0 0;
+  box-sizing: border-box;
   cursor: default;
+
+  &.selectable {
+    cursor: pointer;
+  }
+  &.draggable {
+    touch-action: none;
+    pointer-events: all;
+    cursor: grab;
+
+    &.dragging {
+      cursor: grabbing;
+    }
+  }
+}
+
+.dag-flow__node-default {
+  padding: 10px;
+  border-radius: var(--dag-flow-node-border-radius);
+  width: 150px;
+  font-size: 12px;
+  color: var(--dag-flow-node-color);
+  text-align: center;
+  border: var(--dag-flow-node-border);
+  background-color: var(--dag-flow-node-background-color);
+
+  &.selectable {
+    &:hover {
+      outline: none;
+      border: var(--dag-flow-node-border-selected);
+      box-shadow: var(--dag-flow-node-boxshadow-hover);
+    }
+
+    &.selected,
+    &:focus,
+    &:focus-visible {
+      box-shadow: var(--dag-flow-node-boxshadow-selected);
+    }
+  }
 }
 
 /* 连接手柄 */
-.dag-flow-handle {
+.dag-flow__handle {
   position: absolute;
   width: 10px;
   height: 10px;
@@ -171,83 +154,68 @@
   z-index: 1;
 }
 
-.dag-flow-handle--source {
+.dag-flow__handle-left {
+  left: -5px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.dag-flow__handle-right {
   right: -5px;
   top: 50%;
   transform: translateY(-50%);
 }
 
-.dag-flow-handle:hover {
+.dag-flow__handle-top {
+  left: 50%;
+  top: -5px;
+  transform: translateX(-50%);
+}
+
+.dag-flow__handle-bottom {
+  left: 50%;
+  bottom: -5px;
+  transform: translateX(-50%);
+}
+
+.dag-flow__handle:hover {
   background: #ff0072;
   border-color: #ff0072;
 }
 
-/* 默认节点 */
-.dag-flow-node {
-  position: relative;
-  border-radius: 8px;
-  padding: 10px;
-  width: 150px;
-  background-color: #ffffff;
-  border-color: #f0f0f0;
-  border-width: 1px;
-  border-style: solid;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  box-sizing: border-box;
-  font-size: 14px;
-  color: rgba(0, 0, 0, 0.88);
-  word-break: break-all;
-}
-
-.dag-flow-node--selectable {
-  cursor: pointer;
-}
-
-.dag-flow-node--selectable:hover,
-.dag-flow-node--selected {
-  border-color: #1677ff;
-  box-shadow:
-    0 1px 2px 0 rgba(0, 0, 0, 0.03),
-    0 1px 6px -1px rgba(0, 0, 0, 0.02),
-    0 2px 4px 0 rgba(0, 0, 0, 0.02);
-}
-
 /* ---------- 附加组件 ---------- */
+
+.dag-flow__node-toolbar {
+  position: absolute;
+  z-index: 5;
+  pointer-events: auto;
+}
 
 /* Controls */
 .dag-flow-controls {
   display: flex;
   gap: 4px;
   align-items: center;
-  background: var(--dag-flow-bg, #ffffff);
-  border: 1px solid var(--dag-flow-border, #d9d9d9);
-  border-radius: 4px;
-  padding: 4px;
-  box-sizing: border-box;
 }
 
 .dag-flow-controls__button {
   width: 24px;
   height: 24px;
   padding: 0;
-  border: 1px solid var(--dag-flow-border, #d9d9d9);
+  border: var(--dag-flow-controls-button-border);
   border-radius: 4px;
-  background: var(--dag-flow-bg, #ffffff);
+  background: var(--dag-flow-controls-button-background);
   font-size: 16px;
   line-height: 1;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--dag-flow-text, rgba(0, 0, 0, 0.88));
+  color: var(--dag-flow-controls-button-color);
 }
 
 .dag-flow-controls__button--disabled {
-  color: var(--dag-flow-text-disabled, rgba(0, 0, 0, 0.25));
+  color: var(--dag-flow-controls-button-disabled-color);
   cursor: not-allowed;
 }
 
@@ -261,8 +229,8 @@
 .dag-flow-minimap {
   border-radius: 4px;
   padding: 8px 12px;
-  background-color: var(--dag-flow-bg, #ffffff);
-  border: 1px solid var(--dag-flow-border, #d9d9d9);
+  background-color: var(--dag-flow-minimap-background);
+  border: var(--dag-flow-minimap-border);
   overflow: hidden;
   box-sizing: border-box;
 }
@@ -288,7 +256,7 @@
 
 .dag-flow-minimap__node {
   position: absolute;
-  background-color: var(--dag-flow-primary, #1677ff);
+  background-color: var(--dag-flow-minimap-node-background);
 }
 
 .dag-flow-minimap__view-box {
@@ -296,7 +264,7 @@
   top: 0;
   left: 0;
   transform-origin: 0 0;
-  border: 1px solid var(--dag-flow-primary, #1677ff);
+  border: var(--dag-flow-minimap-viewport-border);
   box-sizing: border-box;
   touch-action: none;
 }

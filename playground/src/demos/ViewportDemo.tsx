@@ -1,5 +1,5 @@
 import { useCallback, useState } from "react";
-import { DAGCanvas, useViewport } from "dag-flow";
+import { DagFlow, ViewportPortal, useViewport } from "dag-flow";
 import type { Viewport } from "dag-flow";
 import { PARALLEL_FLOW, PARALLEL_NODES, nodeTypes } from "./shared.tsx";
 
@@ -19,7 +19,7 @@ export default function ViewportDemo() {
   return (
     <div className="demo-controlled">
       <div className="demo-canvas">
-        <DAGCanvas
+        <DagFlow
           defaultNodes={PARALLEL_NODES}
           defaultFlow={PARALLEL_FLOW}
           nodeTypes={nodeTypes}
@@ -27,8 +27,16 @@ export default function ViewportDemo() {
           onMove={onMove}
           style={{ background: "#fafafa" }}
         >
+          <ViewportPortal>
+            <div
+              className="demo-viewport-marker"
+              style={{ position: "absolute", transform: "translate(100px, 100px)" }}
+            >
+              [100, 100]
+            </div>
+          </ViewportPortal>
           <CurrentViewport />
-        </DAGCanvas>
+        </DagFlow>
       </div>
       <aside className="demo-panel">
         <h3>onMove 日志</h3>

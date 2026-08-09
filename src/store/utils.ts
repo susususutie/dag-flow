@@ -1,13 +1,35 @@
 import Flow from "../utils/Flow.ts";
-import { resolveLineColor } from "../utils/color.ts";
 import initialState, { defaultFitViewOptions } from "./initialState.ts";
 import canvasReducer from "./reducer.ts";
 import type { CanvasConfigProps, StoreState } from "../types/index.ts";
-import type { DAGNode } from "../types/index.ts";
+import type { DAGNode, FlowModel, PositionedDAGNode } from "../types/index.ts";
 import type { FitViewOptions, Viewport } from "../types/index.ts";
 
 export function createNodeMap(nodes: DAGNode[]): Map<string, DAGNode> {
-  return new Map(nodes.map((node) => [node.id, node]));
+  const nodeMap = new Map(
+    nodes.map((node) => [node.id, node.position ? node : { ...node, position: { x: 0, y: 0 } }]),
+  );
+  if (nodeMap.size !== nodes.length) {
+    throw new Error("Invalid DAG: nodes contains duplicate node IDs");
+  }
+  return nodeMap;
+}
+
+/** nodes 与 flow 是同一份 DAG 的两个视图，节点 ID 必须一一对应。 */
+export function assertValidDAG(nodeMap: Map<string, DAGNode>, flow: FlowModel): void {
+  const flowIds = new Flow(flow).getNodeIds();
+  const flowIdSet = new Set(flowIds);
+  if (flowIdSet.size !== flowIds.length) {
+    throw new Error("Invalid DAG: flow contains duplicate node IDs");
+  }
+  if (nodeMap.size !== flowIdSet.size) {
+    throw new Error("Invalid DAG: nodes and flow must contain the same node IDs");
+  }
+  for (const id of nodeMap.keys()) {
+    if (!flowIdSet.has(id)) {
+      throw new Error(`Invalid DAG: node "${id}" is missing from flow`);
+    }
+  }
 }
 
 export function isNodeSelectable(node: DAGNode | undefined, nodesSelectable: boolean): boolean {
@@ -28,11 +50,17 @@ export function createSelectedNodes(
 export function getNodesFromState(state: {
   nodeMap: Map<string, DAGNode>;
   selectedNodes: Set<string>;
-}): DAGNode[] {
+}): PositionedDAGNode[] {
   return Array.from(state.nodeMap.values(), (node) => {
+    const positionedNode = node as PositionedDAGNode;
     const selected = state.selectedNodes.has(node.id);
-    if (selected) return node.selected === true ? node : { ...node, selected: true };
-    return node.selected === true ? { ...node, selected: false } : node;
+    if (selected)
+      return positionedNode.selected === true
+        ? positionedNode
+        : { ...positionedNode, selected: true };
+    return positionedNode.selected === true
+      ? { ...positionedNode, selected: false }
+      : positionedNode;
   });
 }
 
@@ -98,10 +126,8 @@ function resolveDefaultViewport(defaultViewport: Viewport | undefined): Viewport
 
 /** 创建初始状态（props 均为可选，未提供时使用默认值） */
 export function createInitialState(props: CanvasConfigProps): StoreState {
-  const hGap = props.hGap ?? initialState.layout.hGap;
-  const vGap = props.vGap ?? initialState.layout.vGap;
-  const lineWidth = props.lineWidth ?? initialState.layout.lineWidth;
   const nodesSelectable = props.nodesSelectable ?? initialState.nodesSelectable;
+  const nodesDraggable = props.nodesDraggable ?? initialState.nodesDraggable;
 
   const minZoom = props.minZoom ?? initialState.minZoom;
   const maxZoom = props.maxZoom ?? initialState.maxZoom;
@@ -127,6 +153,8 @@ export function createInitialState(props: CanvasConfigProps): StoreState {
   };
 
   const nodeMap = createNodeMap(props.nodes ?? props.defaultNodes ?? []);
+  const flow = new Flow(props.flow ?? props.defaultFlow ?? initialState.flow).toArray();
+  assertValidDAG(nodeMap, flow);
   return {
     ...initialState,
     uid: props.uid ?? "",
@@ -137,7 +165,7 @@ export function createInitialState(props: CanvasConfigProps): StoreState {
       y: defaultViewport.y,
     },
     defaultViewport,
-    flow: new Flow(props.flow ?? props.defaultFlow ?? initialState.flow).toArray(),
+    flow,
     minZoom,
     maxZoom,
     fitView,
@@ -149,17 +177,11 @@ export function createInitialState(props: CanvasConfigProps): StoreState {
     panOnDrag,
     panDragModifier,
     nodesSelectable,
+    nodesDraggable,
+    direction: props.direction ?? initialState.direction,
     selectedNodes: createSelectedNodes(nodeMap, nodesSelectable),
-    layout: {
-      ...initialState.layout,
-      hGap,
-      vGap,
-      lineWidth,
-      lineColor: resolveLineColor(props.lineColor ?? initialState.layout.lineColor),
-    },
     nodeMap,
     nodeTypes: props.nodeTypes ?? initialState.nodeTypes,
-    layoutEngine: props.layoutEngine,
   };
 }
 
@@ -191,6 +213,9 @@ export function syncCanvasProps(
     panOnDrag: !!(props.panOnDrag ?? state.panOnDrag),
     panDragModifier: props.panDragModifier ?? state.panDragModifier,
     nodesSelectable: props.nodesSelectable ?? state.nodesSelectable,
+    nodesDraggable: props.nodesDraggable ?? state.nodesDraggable,
+    direction: props.direction ?? state.direction,
+    nodeTypes: props.nodeTypes ?? state.nodeTypes,
   };
 
   const optionsChanged = Object.entries(nextOptions).some(([key, value]) => {
@@ -221,18 +246,18 @@ export function syncCanvasProps(
     }
   }
 
-  const nextFlow = props.flow ?? (initializeViewport ? props.defaultFlow : undefined);
-  if (nextFlow !== undefined) {
-    const normalizedNextFlow = new Flow(nextFlow).toArray();
-    if (!flowsEqual(normalizedNextFlow, nextState.flow)) {
-      nextState = canvasReducer(nextState, { type: "SET_FLOW", payload: normalizedNextFlow });
-    }
-  }
-  const nextNodes = props.nodes ?? (initializeViewport ? props.defaultNodes : undefined);
-  if (nextNodes !== undefined) {
-    const nextNodeMap = createNodeMap(nextNodes);
-    if (!nodeMapsEqual(nextNodeMap, nextState.nodeMap)) {
-      nextState = canvasReducer(nextState, { type: "SET_NODE_MAP", payload: nextNodeMap });
+  const nextFlowProp = props.flow ?? (initializeViewport ? props.defaultFlow : undefined);
+  const nextNodesProp = props.nodes ?? (initializeViewport ? props.defaultNodes : undefined);
+  if (nextFlowProp !== undefined || nextNodesProp !== undefined) {
+    const nextFlow = nextFlowProp === undefined ? nextState.flow : new Flow(nextFlowProp).toArray();
+    const nextNodeMap =
+      nextNodesProp === undefined ? nextState.nodeMap : createNodeMap(nextNodesProp);
+    assertValidDAG(nextNodeMap, nextFlow);
+    if (!flowsEqual(nextFlow, nextState.flow) || !nodeMapsEqual(nextNodeMap, nextState.nodeMap)) {
+      nextState = canvasReducer(nextState, {
+        type: "SET_DAG",
+        payload: { flow: nextFlow, nodeMap: nextNodeMap },
+      });
     }
   }
 
@@ -243,10 +268,6 @@ export function syncCanvasProps(
   );
   if (selectedNodes.size !== nextState.selectedNodes.size)
     nextState = { ...nextState, selectedNodes };
-
-  if (props.layoutEngine && props.layoutEngine !== nextState.layoutEngine) {
-    nextState = { ...nextState, layoutEngine: props.layoutEngine };
-  }
 
   return nextState;
 }

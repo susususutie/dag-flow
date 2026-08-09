@@ -5,28 +5,27 @@ import Wrapper from "./Wrapper.tsx";
 import GraphView from "../GraphView/GraphView.tsx";
 import type { GraphViewHandle } from "../GraphView/GraphView.tsx";
 import type { CanvasProviderProps } from "../../types/index.ts";
-import { palette } from "../../utils/color.ts";
 
-export interface DAGCanvasProps extends CanvasProviderProps {
+export interface DagFlowProps extends CanvasProviderProps {
   id?: string;
   style?: CSSProperties;
   children?: ReactNode;
 }
 
 /**
+ * DagFlow 根组件。
+ *
  * @param {Object} props
- * @param {string} [props.id] - DAGCanvas 根元素 id（缺省时自动生成）
+ * @param {string} [props.id] - DagFlow 根元素 id（缺省时自动生成）
  * @param {string} props.style - 根元素样式
  * @param {Array} [props.flow] - 受控拓扑结构（引擎模型：串行节点 id 或并行组数组）
  * @param {Array} [props.defaultFlow] - 非受控模式的初始拓扑结构，仅首次挂载时生效
  * @param {Array<{id: string, type?: string, data: Object, selectable?: boolean}>} [props.nodes] - 受控节点数据（React Flow nodes），作为节点数据源
  * @param {Array} [props.defaultNodes] - 非受控模式的初始节点数据，仅首次挂载时生效
  * @param {{x: number, y: number, zoom: number}} [props.defaultViewport = {x: 0, y: 0, zoom: 1}] - 初始视口（React Flow defaultViewport）；zoom 受全局 minZoom/maxZoom 限制
- * @param {number} [props.hGap = 160] - 节点水平间距（相邻节点间总间距）
- * @param {number} [props.vGap = 16] - 节点垂直间距
- * @param {number} [props.lineWidth = 2] - 边线宽度
- * @param {string} [props.lineColor = 'default'] - 边线颜色，支持状态色关键词或任意 CSS 颜色
  * @param {boolean} [props.nodesSelectable = true] - 节点是否可选中，可由 node.selectable 覆盖
+ * @param {boolean} [props.nodesDraggable = true] - 节点是否可拖动，可由 node.draggable 覆盖
+ * @param {'horizontal' | 'vertical'} [props.direction = 'horizontal'] - 统一 Handle 与边端点方向，不配置布局算法
  * @param {number} [props.minZoom = 0.5] - 最小缩放比例
  * @param {number} [props.maxZoom = 2] - 最大缩放比例
  * @param {boolean} [props.fitView = false] - 是否初始缩放并居中适应画布内容（React Flow fitView）
@@ -44,18 +43,19 @@ export interface DAGCanvasProps extends CanvasProviderProps {
  * @param {({nodes: Array}) => void} [props.onSelectionChange] - 选中节点变化回调
  * @param {(e: MouseEvent) => void} [props.onPaneClick] - 点击画布空白区域回调
  * @param {(event: MouseEvent | null, viewport: {x: number, y: number, zoom: number}) => void} [props.onMove] - 视口移动/缩放变化回调
- * @param {Object} [props.nodeTypes] - 节点渲染注册表 { [type]: Component }；自定义组件接收 id/type/data/selectable/selected，未注册的类型回退到内置 DefaultNode
+ * @param {Object} [props.nodeTypes] - 节点渲染注册表 { [type]: Component }；未注册的类型先回退到 nodeTypes.default，再回退到只渲染 data.label 的内置 DefaultNode
  *
  * ref 实例方法（useDAGInstance()）：
  * - getFlow() / getNodes() / getNode(id)
- * - setDAG(value) / setNodes(value) / setFlow(value)（原子联动更新）
+ * - setDAG(value)（原子更新节点与拓扑）
  * - updateNode(id, update) / updateNodeData(id, update)
  * - deleteNode(node) / deleteNodes(nodes)：执行 onBeforeDelete 后原子更新 nodes 与 flow
  * - selectNode(id) / clearSelection()
  * - getFlowElement() / fitView(options?) / zoomIn() / zoomOut() / zoomTo(zoom)
  * - setViewport(viewport) / getViewport()
+ * - layout(options?)（纯计算布局并返回完整 DAGData）
  */
-const DAGCanvas = forwardRef<GraphViewHandle, DAGCanvasProps>(function DAGCanvas(props, ref) {
+const DagFlow = forwardRef<GraphViewHandle, DagFlowProps>(function DagFlow(props, ref) {
   const {
     id,
     style,
@@ -74,13 +74,11 @@ const DAGCanvas = forwardRef<GraphViewHandle, DAGCanvasProps>(function DAGCanvas
     defaultViewport,
     fitView = false,
     fitViewOptions,
-    hGap = 160,
-    vGap = 16,
-    lineWidth = 2,
-    lineColor = "default",
     // 交互
     onNodeClick,
     nodesSelectable = true,
+    nodesDraggable = true,
+    direction = "horizontal",
     onSelectionChange,
     onBeforeDelete,
     zoomOnScroll = true,
@@ -91,28 +89,14 @@ const DAGCanvas = forwardRef<GraphViewHandle, DAGCanvasProps>(function DAGCanvas
     panDragModifier = "none",
     onPaneClick,
     onMove,
-    onLayoutChange,
     layoutEngine,
   } = props;
 
   const canvasId = useId();
   const uid = id || `DAG-${canvasId}`;
 
-  const themeVariables = {
-    "--dag-flow-primary": palette.colorPrimary,
-    "--dag-flow-border": palette.colorBorder,
-    "--dag-flow-bg": palette.colorBgContainer,
-    "--dag-flow-text": "rgba(0, 0, 0, 0.88)",
-    "--dag-flow-text-disabled": "rgba(0, 0, 0, 0.25)",
-  } as CSSProperties;
-
   return (
-    <div
-      id={uid}
-      className="dag-flow__canvas"
-      style={{ ...themeVariables, ...style }}
-      data-testid="dag-canvas"
-    >
+    <div id={uid} className="dag-flow" style={style} data-testid="dag-flow">
       <Wrapper
         uid={uid}
         defaultViewport={defaultViewport}
@@ -124,11 +108,9 @@ const DAGCanvas = forwardRef<GraphViewHandle, DAGCanvasProps>(function DAGCanvas
         maxZoom={maxZoom}
         fitView={fitView}
         fitViewOptions={fitViewOptions}
-        hGap={hGap}
-        vGap={vGap}
-        lineWidth={lineWidth}
-        lineColor={lineColor}
         nodesSelectable={nodesSelectable}
+        nodesDraggable={nodesDraggable}
+        direction={direction}
         zoomOnScroll={zoomOnScroll}
         zoomModifier={zoomModifier}
         panOnScroll={panOnScroll}
@@ -137,7 +119,6 @@ const DAGCanvas = forwardRef<GraphViewHandle, DAGCanvasProps>(function DAGCanvas
         panDragModifier={panDragModifier}
         nodeTypes={nodeTypes}
         layoutEngine={layoutEngine}
-        onLayoutChange={onLayoutChange}
       >
         <StoreUpdater
           uid={uid}
@@ -146,11 +127,9 @@ const DAGCanvas = forwardRef<GraphViewHandle, DAGCanvasProps>(function DAGCanvas
           defaultFlow={defaultFlow}
           nodes={nodes}
           defaultNodes={defaultNodes}
-          hGap={hGap}
-          vGap={vGap}
-          lineWidth={lineWidth}
-          lineColor={lineColor}
           nodesSelectable={nodesSelectable}
+          nodesDraggable={nodesDraggable}
+          direction={direction}
           minZoom={minZoom}
           maxZoom={maxZoom}
           fitView={fitView}
@@ -170,7 +149,6 @@ const DAGCanvas = forwardRef<GraphViewHandle, DAGCanvasProps>(function DAGCanvas
           onMove={onMove}
           nodeTypes={nodeTypes}
           layoutEngine={layoutEngine}
-          onLayoutChange={onLayoutChange}
         />
         <GraphView ref={ref}>{children}</GraphView>
       </Wrapper>
@@ -178,4 +156,4 @@ const DAGCanvas = forwardRef<GraphViewHandle, DAGCanvasProps>(function DAGCanvas
   );
 });
 
-export default DAGCanvas;
+export default DagFlow;

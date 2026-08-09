@@ -1,6 +1,5 @@
-import type { FlowModel, XYPosition } from "../types/index.ts";
+import type { FlowModel, LayoutEngine, XYPosition } from "../types/index.ts";
 import type { FlowPath } from "../types/index.ts";
-import type { LayoutEngine } from "../types/index.ts";
 import Flow from "./Flow.ts";
 
 export interface LayoutOptions {
@@ -130,6 +129,11 @@ export function getNodesBounds(
   return { x: minX, y: minY, width: maxX - minX, height: maxY - minY };
 }
 
-/** 默认布局引擎：列式 DAG 路由（消费 config.hGap/vGap，未测量节点按 150×40 计算） */
-export const defaultLayoutEngine: LayoutEngine = (flow, { dimensions, pinned, config }) =>
-  computeLayout(flow, dimensions, pinned, { hGap: config.hGap, vGap: config.vGap });
+/** 创建默认列式 DAG 布局引擎，算法配置由闭包持有 */
+export function createDefaultLayoutEngine(options: LayoutOptions = {}): LayoutEngine {
+  return ({ flow, dimensions }) => ({
+    positions: computeLayout(flow, dimensions, new Map(), options),
+  });
+}
+
+export const defaultLayoutEngine = createDefaultLayoutEngine();

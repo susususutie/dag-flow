@@ -7,6 +7,6 @@ import type { Viewport } from "../types/index.ts";
  */
 export default function useViewport(): Viewport {
   const viewport = useContext(CanvasTransformContext);
-  if (!viewport) throw new Error("useViewport must be used within a DAGProvider or DAGCanvas");
+  if (!viewport) throw new Error("useViewport must be used within a DagFlowProvider or DagFlow");
   return viewport;
 }

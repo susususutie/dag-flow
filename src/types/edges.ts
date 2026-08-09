@@ -1,9 +1,14 @@
-/** 锚点方向（对齐 React Flow Position 枚举值与钩点语义） */
+/** 锚点方向（对齐 React Flow @xyflow/system Position 枚举值与钩点语义） */
 export enum Position {
-  Left = "left",
-  Right = "right",
+  TopLeft = "top-left",
   Top = "top",
+  TopRight = "top-right",
+  Left = "left",
+  Center = "center",
+  Right = "right",
+  BottomLeft = "bottom-left",
   Bottom = "bottom",
+  BottomRight = "bottom-right",
 }
 
 /** 内部边：由 flow 拓扑推导，渲染时补充锚点坐标 */

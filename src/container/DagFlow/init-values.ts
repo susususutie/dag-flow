@@ -1,5 +1,5 @@
 /**
- * DAGCanvas 动画与视口相关默认值。
+ * 画布动画与视口相关默认值。
  */
 export const ZOOM_FACTOR = 1.2;
 export const WHEEL_PAN_SPEED = 0.5;

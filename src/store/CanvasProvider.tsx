@@ -11,9 +11,9 @@ import {
   InteractionContext,
 } from "../contexts/StoreContext.tsx";
 import canvasReducer from "./reducer.ts";
-import initialState from "./initialState.ts";
 import {
   createNodeMap,
+  assertValidDAG,
   flowsEqual,
   getNodesFromState,
   isNodeSelectable,
@@ -24,14 +24,16 @@ import { createInitialState } from "./utils.ts";
 import Flow from "../utils/Flow.ts";
 import type { CanvasAction, CanvasProviderProps, CanvasState, StoreState } from "../types/index.ts";
 import type { DAGInstance, OnBeforeDeleteResult, ViewApi } from "../types/index.ts";
-import type { DAGNode } from "../types/index.ts";
+import type { DAGNode, LayoutEngine, PositionedDAGData } from "../types/index.ts";
 import type { NodeChanges } from "../types/index.ts";
+import { defaultLayoutEngine } from "../utils/layout.ts";
 
 const GRAPH_ACTION_TYPES = new Set([
   "DELETE_NODE",
   "UPDATE_SELECTED_NODE",
   "CLEAR_SELECTION",
   "SET_DAG",
+  "UPDATE_NODE_POSITION",
 ]);
 
 /** 基于 reducer 已接受的前后状态生成 changes，避免无效 action 产生错误通知 */
@@ -41,6 +43,11 @@ function buildNodeChanges(
   actions: CanvasAction[],
 ): NodeChanges {
   const changes: NodeChanges = [];
+  const positionChanges = new Map(
+    actions
+      .filter((action) => action.type === "UPDATE_NODE_POSITION")
+      .map((action) => [action.payload.id, action.payload]),
+  );
 
   previousState.nodeMap.forEach((_node, id) => {
     if (!nextState.nodeMap.has(id)) changes.push({ type: "remove", id });
@@ -48,7 +55,7 @@ function buildNodeChanges(
   nextState.nodeMap.forEach((node, id) => {
     if (!previousState.nodeMap.has(id)) {
       changes.push({ type: "add", item: node });
-    } else if (previousState.nodeMap.get(id) !== node) {
+    } else if (previousState.nodeMap.get(id) !== node && !positionChanges.has(id)) {
       changes.push({ type: "replace", id, item: node });
     }
   });
@@ -65,6 +72,12 @@ function buildNodeChanges(
       if (wasSelected !== selected) changes.push({ type: "select", id, selected });
     });
   }
+
+  positionChanges.forEach(({ id, position, dragging }) => {
+    const node = nextState.nodeMap.get(id);
+    if (!node) return;
+    changes.push({ type: "position", id, position, dragging });
+  });
 
   return changes;
 }
@@ -84,7 +97,7 @@ interface CanvasProviderPropsWithChildren extends CanvasProviderProps {
 }
 
 /**
- * 画布状态管理器，接收的参数已经过外层 DAGCanvas 处理，视为合法。
+ * 画布状态管理器，接收的参数已经过外层 DagFlow 处理，视为合法。
  */
 const CanvasProvider = forwardRef<DAGInstance, CanvasProviderPropsWithChildren>(
   function CanvasProvider(props, ref) {
@@ -97,7 +110,6 @@ const CanvasProvider = forwardRef<DAGInstance, CanvasProviderPropsWithChildren>(
       onSelectionChange,
       onPaneClick,
       onMove,
-      onLayoutChange,
     } = props;
 
     const [state, setState] = useState<StoreState>(() => createInitialState(props));
@@ -107,12 +119,15 @@ const CanvasProvider = forwardRef<DAGInstance, CanvasProviderPropsWithChildren>(
     stateRef.current = state;
     const configuredByCanvasRef = useRef(false);
     const viewApiRef = useRef<ViewApi | undefined>(undefined);
+    const layoutEngineRef = useRef<LayoutEngine>(props.layoutEngine ?? defaultLayoutEngine);
+    const graphRevisionRef = useRef(0);
+    const layoutRequestIdRef = useRef(0);
+    const stateListenersRef = useRef(new Set<() => void>());
     const onNodesChangeRef = useRef(onNodesChange);
     const onFlowChangeRef = useRef(onFlowChange);
 
     const interactionRef = useRef({ onNodeClick, onBeforeDelete, onSelectionChange, onPaneClick });
     const onMoveRef = useRef(onMove);
-    const onLayoutChangeRef = useRef(onLayoutChange);
     if (!configuredByCanvasRef.current) {
       onNodesChangeRef.current = onNodesChange;
       onFlowChangeRef.current = onFlowChange;
@@ -121,7 +136,6 @@ const CanvasProvider = forwardRef<DAGInstance, CanvasProviderPropsWithChildren>(
       interactionRef.current.onSelectionChange = onSelectionChange;
       interactionRef.current.onPaneClick = onPaneClick;
       onMoveRef.current = onMove;
-      onLayoutChangeRef.current = onLayoutChange;
     }
 
     const dispatchWithChange = useMemo(() => {
@@ -144,11 +158,15 @@ const CanvasProvider = forwardRef<DAGInstance, CanvasProviderPropsWithChildren>(
         const nextState = canvasReducer(previousState, action);
         if (nextState === previousState) return;
 
-        if (action.type === "SET_COMPUTED_POSITIONS") {
-          onLayoutChangeRef.current?.(action.payload);
-        }
-
         stateRef.current = nextState;
+        if (
+          previousState.nodeMap !== nextState.nodeMap ||
+          previousState.flow !== nextState.flow ||
+          previousState.nodeDimensions !== nextState.nodeDimensions
+        ) {
+          graphRevisionRef.current += 1;
+        }
+        stateListenersRef.current.forEach((listener) => listener());
         setState(nextState);
         notify(action, previousState, nextState);
       };
@@ -166,11 +184,20 @@ const CanvasProvider = forwardRef<DAGInstance, CanvasProviderPropsWithChildren>(
           interactionRef.current.onSelectionChange = nextProps.onSelectionChange;
           interactionRef.current.onPaneClick = nextProps.onPaneClick;
           onMoveRef.current = nextProps.onMove;
-          onLayoutChangeRef.current = nextProps.onLayoutChange;
+          layoutEngineRef.current = nextProps.layoutEngine ?? defaultLayoutEngine;
 
           const nextState = syncCanvasProps(stateRef.current, nextProps, initializeViewport);
           if (nextState === stateRef.current) return;
+          const previousState = stateRef.current;
           stateRef.current = nextState;
+          if (
+            previousState.nodeMap !== nextState.nodeMap ||
+            previousState.flow !== nextState.flow ||
+            previousState.nodeDimensions !== nextState.nodeDimensions
+          ) {
+            graphRevisionRef.current += 1;
+          }
+          stateListenersRef.current.forEach((listener) => listener());
           setState(nextState);
         },
         getTransform: () => stateRef.current.transform,
@@ -178,6 +205,10 @@ const CanvasProvider = forwardRef<DAGInstance, CanvasProviderPropsWithChildren>(
         getNodes: () => getNodesFromState(stateRef.current),
         getDirty: () => stateRef.current.dirty,
         getState: () => stateRef.current,
+        subscribe: (listener: () => void) => {
+          stateListenersRef.current.add(listener);
+          return () => stateListenersRef.current.delete(listener);
+        },
         setViewApi: (viewApi: ViewApi | undefined) => {
           viewApiRef.current = viewApi;
         },
@@ -230,11 +261,12 @@ const CanvasProvider = forwardRef<DAGInstance, CanvasProviderPropsWithChildren>(
       const setDAG = (value: Parameters<DAGInstance["setDAG"]>[0]) => {
         const currentState = stateRef.current;
         const currentNodes = getNodes();
-        const current = { nodes: currentNodes, flow: currentState.flow };
+        const current: PositionedDAGData = { nodes: currentNodes, flow: currentState.flow };
         const next = typeof value === "function" ? value(current) : value;
-        const nodes = Array.isArray(next?.nodes) ? next.nodes : [];
-        const flow = Array.isArray(next?.flow) ? next.flow : [];
-        const nextNodeMap = new Map(nodes.map((node) => [node.id, node]));
+        const nodes = next.nodes;
+        const flow = next.flow;
+        const nextNodeMap = createNodeMap(nodes);
+        assertValidDAG(nextNodeMap, flow);
         dispatchWithChange({
           type: "SET_DAG",
           payload: {
@@ -247,20 +279,17 @@ const CanvasProvider = forwardRef<DAGInstance, CanvasProviderPropsWithChildren>(
         });
       };
 
-      const setNodes = (value: Parameters<DAGInstance["setNodes"]>[0]) =>
-        setDAG((current) => ({
-          ...current,
-          nodes: typeof value === "function" ? value(current.nodes) : value,
-        }));
-
       const updateNode = (id: string, update: Parameters<DAGInstance["updateNode"]>[1]) => {
         const currentNode = stateRef.current.nodeMap.get(id);
         if (!currentNode) return;
         const nodeUpdate = typeof update === "function" ? update(currentNode) : update;
         if (!nodeUpdate) return;
-        setNodes((nodes) =>
-          nodes.map((node) => (node.id === id ? { ...node, ...nodeUpdate, id } : node)),
-        );
+        setDAG((current) => ({
+          ...current,
+          nodes: current.nodes.map((node) =>
+            node.id === id ? { ...node, ...nodeUpdate, id } : node,
+          ),
+        }));
       };
 
       const updateNodeData = (id: string, update: Parameters<DAGInstance["updateNodeData"]>[1]) => {
@@ -291,6 +320,65 @@ const CanvasProvider = forwardRef<DAGInstance, CanvasProviderPropsWithChildren>(
 
       const clearSelection = () => dispatchWithChange({ type: "CLEAR_SELECTION" });
 
+      const waitForNodesInitialized = (signal?: AbortSignal) => {
+        const isReady = () => {
+          const currentState = stateRef.current;
+          return (
+            currentState.nodeMap.size === 0 ||
+            Array.from(currentState.nodeMap.keys()).every((id) =>
+              currentState.nodeDimensions.has(id),
+            )
+          );
+        };
+        if (isReady()) return Promise.resolve();
+        return new Promise<void>((resolve, reject) => {
+          const cleanup = () => {
+            stateListenersRef.current.delete(check);
+            signal?.removeEventListener("abort", abort);
+          };
+          const check = () => {
+            if (!isReady()) return;
+            cleanup();
+            resolve();
+          };
+          const abort = () => {
+            cleanup();
+            reject(signal?.reason ?? new DOMException("Layout aborted", "AbortError"));
+          };
+          stateListenersRef.current.add(check);
+          signal?.addEventListener("abort", abort, { once: true });
+        });
+      };
+
+      const layout: DAGInstance["layout"] = async (options) => {
+        const requestId = ++layoutRequestIdRef.current;
+        if (options?.signal?.aborted) {
+          throw options.signal.reason ?? new DOMException("Layout aborted", "AbortError");
+        }
+        await waitForNodesInitialized(options?.signal);
+        const revision = graphRevisionRef.current;
+        const currentState = stateRef.current;
+        const nodes = getNodesFromState(currentState);
+        const result = await (options?.engine ?? layoutEngineRef.current)({
+          nodes,
+          flow: currentState.flow,
+          dimensions: new Map(currentState.nodeDimensions),
+        });
+        if (options?.signal?.aborted) {
+          throw options.signal.reason ?? new DOMException("Layout aborted", "AbortError");
+        }
+        if (requestId !== layoutRequestIdRef.current || revision !== graphRevisionRef.current) {
+          throw new Error("Layout result is stale");
+        }
+        return {
+          flow: currentState.flow,
+          nodes: nodes.map((node) => ({
+            ...node,
+            position: result.positions.get(node.id) ?? node.position,
+          })),
+        };
+      };
+
       const setViewport = (value: Parameters<DAGInstance["setViewport"]>[0]) => {
         const currentState = stateRef.current;
         const currentViewport = currentState.transform;
@@ -313,15 +401,10 @@ const CanvasProvider = forwardRef<DAGInstance, CanvasProviderPropsWithChildren>(
       return {
         getDAG: () => ({ nodes: getNodes(), flow: stateRef.current.flow }),
         getNodes,
-        getNode: (id: string) => stateRef.current.nodeMap.get(id),
+        getNode: (id: string) =>
+          stateRef.current.nodeMap.get(id) as ReturnType<DAGInstance["getNode"]>,
         getFlow: () => stateRef.current.flow,
         setDAG,
-        setNodes,
-        setFlow: (value: Parameters<DAGInstance["setFlow"]>[0]) =>
-          setDAG((current) => ({
-            ...current,
-            flow: typeof value === "function" ? value(current.flow) : value,
-          })),
         updateNode,
         updateNodeData,
         deleteNode: (value: string | DAGNode) => deleteNodes([value]),
@@ -338,26 +421,26 @@ const CanvasProvider = forwardRef<DAGInstance, CanvasProviderPropsWithChildren>(
           const { x, y, zoom } = stateRef.current.transform;
           return { x, y, zoom };
         },
-        layout: () => dispatchWithChange({ type: "FORCE_LAYOUT" }),
+        layout,
       };
     }, [dispatchWithChange]);
 
-    // 外部受控值变化时回写内部渲染状态；内部操作回调返回的同一份数据不会重复更新
+    // CanvasProvider 直接使用时，也按完整 DAG 同步受控 nodes/flow。
     useEffect(() => {
       if (configuredByCanvasRef.current) return;
-      const nextFlow = new Flow(props.flow ?? initialState.flow).toArray();
-      if (!flowsEqual(nextFlow, stateRef.current.flow)) {
-        dispatchWithChange({ type: "SET_FLOW", payload: nextFlow });
-      }
-    }, [dispatchWithChange, props.flow]);
-    useEffect(() => {
-      if (configuredByCanvasRef.current) return;
-      if (props.nodes === undefined) return;
-      const nextNodeMap = createNodeMap(props.nodes ?? []);
-      if (!nodeMapsEqual(nextNodeMap, stateRef.current.nodeMap)) {
-        dispatchWithChange({ type: "SET_NODE_MAP", payload: nextNodeMap });
-      }
-    }, [dispatchWithChange, props.nodes]);
+      const currentState = stateRef.current;
+      const nextFlow =
+        props.flow === undefined ? currentState.flow : new Flow(props.flow).toArray();
+      const nextNodeMap =
+        props.nodes === undefined ? currentState.nodeMap : createNodeMap(props.nodes);
+      assertValidDAG(nextNodeMap, nextFlow);
+      if (
+        flowsEqual(nextFlow, currentState.flow) &&
+        nodeMapsEqual(nextNodeMap, currentState.nodeMap)
+      )
+        return;
+      dispatchWithChange({ type: "SET_DAG", payload: { flow: nextFlow, nodeMap: nextNodeMap } });
+    }, [dispatchWithChange, props.flow, props.nodes]);
 
     // 交互回调通过 ref 稳定持有，避免回调引用变化触发节点组件重渲染
     const interaction = useMemo(
@@ -420,14 +503,12 @@ const CanvasProvider = forwardRef<DAGInstance, CanvasProviderPropsWithChildren>(
       state.flow,
       state.nodesSelectable,
       state.selectedNodes,
-      state.layout,
       state.nodeMap,
       state.nodeTypes,
       state.nodeDimensions,
-      state.computedPositions,
-      state.dragPositions,
       state.connectingEdge,
-      state.layoutEpoch,
+      state.nodesDraggable,
+      state.direction,
     ]);
 
     const { nodeMap, selectedNodes } = state;

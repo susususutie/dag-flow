@@ -4,7 +4,7 @@ import useCanvasDispatch from "./useCanvasDispatch.ts";
 import useDAGInstance from "./useDAGInstance.ts";
 import Flow, { type FlowClipboard } from "../utils/Flow.ts";
 import type { DAGNode, FlowModel } from "../types/index.ts";
-/** 模块级剪贴板（跨 DAGCanvas 实例共享，含嵌套结构） */
+/** 模块级剪贴板（跨 DagFlow 实例共享，含嵌套结构） */
 let dagClipboard: FlowClipboard | null = null;
 
 export interface KeyboardHookOptions {

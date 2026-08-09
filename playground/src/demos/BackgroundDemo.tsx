@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { DAGCanvas, Background } from "dag-flow";
+import { DagFlow, Background } from "dag-flow";
 import { BASIC_FLOW, BASIC_NODES, nodeTypes } from "./shared.tsx";
 
 /** Background：backgroundColor / color / size / radius 点阵背景配置 */
@@ -57,7 +57,7 @@ export default function BackgroundDemo() {
         </label>
       </div>
       <div className="demo-canvas">
-        <DAGCanvas
+        <DagFlow
           defaultNodes={BASIC_NODES}
           defaultFlow={BASIC_FLOW}
           nodeTypes={nodeTypes}
@@ -65,7 +65,7 @@ export default function BackgroundDemo() {
           fitViewOptions={{ padding: 40 }}
         >
           <Background size={size} radius={radius} color={color} backgroundColor={bgColor} />
-        </DAGCanvas>
+        </DagFlow>
       </div>
     </div>
   );

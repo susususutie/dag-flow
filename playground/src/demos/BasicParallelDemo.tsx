@@ -1,12 +1,12 @@
-import { DAGCanvas, DAGProvider } from "dag-flow";
+import { DagFlow, DagFlowProvider } from "dag-flow";
 import { PARALLEL_FLOW, PARALLEL_NODES, nodeTypes } from "./shared.tsx";
 
 /** 并行拓扑：五路并行分支，含组内串行路径，验证并行组布局与连线汇聚 */
 export default function BasicParallelDemo() {
   return (
-    <DAGProvider>
+    <DagFlowProvider>
       <div className="demo-canvas">
-        <DAGCanvas
+        <DagFlow
           defaultNodes={PARALLEL_NODES}
           defaultFlow={PARALLEL_FLOW}
           nodeTypes={nodeTypes}
@@ -14,6 +14,6 @@ export default function BasicParallelDemo() {
           fitViewOptions={{ padding: 40 }}
         />
       </div>
-    </DAGProvider>
+    </DagFlowProvider>
   );
 }

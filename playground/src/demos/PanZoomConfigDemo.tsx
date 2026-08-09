@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { DAGCanvas } from "dag-flow";
+import { DagFlow } from "dag-flow";
 import type { Modifier } from "dag-flow";
 import { PARALLEL_FLOW, PARALLEL_NODES, nodeTypes } from "./shared.tsx";
 
@@ -74,7 +74,7 @@ export default function PanZoomConfigDemo() {
         </label>
       </div>
       <div className="demo-canvas">
-        <DAGCanvas
+        <DagFlow
           defaultNodes={PARALLEL_NODES}
           defaultFlow={PARALLEL_FLOW}
           nodeTypes={nodeTypes}

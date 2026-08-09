@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { DAGCanvas, DAGProvider, useDAGInstance } from "dag-flow";
+import { DagFlow, DagFlowProvider, useDAGInstance } from "dag-flow";
 import { BASIC_FLOW, BASIC_NODES, nodeTypes } from "./shared.tsx";
 
 /** fitView / fitViewOptions：初始适配 + 适配参数实时可调 + 手动重新适配 */
@@ -10,7 +10,7 @@ export default function FitViewDemo() {
   const [fitEnabled, setFitEnabled] = useState(true);
 
   return (
-    <DAGProvider>
+    <DagFlowProvider>
       <div className="demo-scene">
         <div className="demo-controls">
           <label>
@@ -57,7 +57,7 @@ export default function FitViewDemo() {
           <RefitButton />
         </div>
         <div className="demo-canvas">
-          <DAGCanvas
+          <DagFlow
             defaultNodes={BASIC_NODES}
             defaultFlow={BASIC_FLOW}
             nodeTypes={nodeTypes}
@@ -66,7 +66,7 @@ export default function FitViewDemo() {
           />
         </div>
       </div>
-    </DAGProvider>
+    </DagFlowProvider>
   );
 }
 
