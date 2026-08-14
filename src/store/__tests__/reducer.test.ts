@@ -36,6 +36,26 @@ describe("canvasReducer 坐标化 state", () => {
     expect(s.nodeTypes).toBe(nodeTypes);
   });
 
+  it("syncCanvasProps 忽略内部变更的等价受控回写", () => {
+    const data = { label: "a" };
+    const s = stateWith({
+      flow: ["a"],
+      nodeMap: createNodeMap([{ id: "a", data, position: { x: 10, y: 20 } }]),
+      selectedNodes: new Set(["a"]),
+    });
+
+    expect(
+      syncCanvasProps(
+        s,
+        {
+          flow: ["a"],
+          nodes: [{ id: "a", data, selected: true, position: { x: 10, y: 20 } }],
+        },
+        false,
+      ),
+    ).toBe(s);
+  });
+
   it("SET_NODE_DIMENSIONS 合并尺寸，跳过相同值", () => {
     let s = stateWith({ nodeDimensions: new Map([["a", { width: 100, height: 40 }]]) });
     s = canvasReducer(s, {
@@ -101,5 +121,105 @@ describe("canvasReducer 坐标化 state", () => {
     s = canvasReducer(s, { type: "DELETE_NODE", payload: { ids: ["a"] } });
     expect(s.nodeDimensions.has("a")).toBe(false);
     expect(s.nodeMap.has("a")).toBe(false);
+  });
+
+  it("SET_DAG 清理失效尺寸并保留仅位置变化节点的尺寸", () => {
+    const previousA = node("a", { data: { label: "A" }, position: { x: 0, y: 0 } });
+    const previousB = node("b", { data: { label: "B" }, position: { x: 0, y: 0 } });
+    const dimensions = new Map([
+      ["a", { width: 100, height: 40 }],
+      ["b", { width: 120, height: 50 }],
+    ]);
+    let s = stateWith({
+      flow: ["a", "b"],
+      nodeMap: createNodeMap([previousA, previousB]),
+      nodeDimensions: dimensions,
+    });
+
+    s = canvasReducer(s, {
+      type: "SET_DAG",
+      payload: {
+        flow: ["a", "c"],
+        nodeMap: createNodeMap([
+          { ...previousA, position: { x: 20, y: 30 } },
+          node("c", { position: { x: 0, y: 0 } }),
+        ]),
+      },
+    });
+
+    expect(s.nodeDimensions.get("a")).toEqual({ width: 100, height: 40 });
+    expect(s.nodeDimensions.has("b")).toBe(false);
+    expect(s.nodeDimensions.has("c")).toBe(false);
+  });
+
+  it("SET_DAG 在节点类型或数据变化时使尺寸失效", () => {
+    const previous = node("a", { type: "old", data: { label: "A" } });
+    const s = canvasReducer(
+      stateWith({
+        flow: ["a"],
+        nodeMap: createNodeMap([previous]),
+        nodeDimensions: new Map([["a", { width: 100, height: 40 }]]),
+      }),
+      {
+        type: "SET_DAG",
+        payload: {
+          flow: ["a"],
+          nodeMap: createNodeMap([{ ...previous, type: "next" }]),
+        },
+      },
+    );
+
+    expect(s.nodeDimensions.has("a")).toBe(false);
+  });
+
+  it("撤销节点渲染数据时使当前尺寸失效", () => {
+    const previous = node("a", { data: { label: "old" } });
+    const current = node("a", { data: { label: "current" } });
+    const s = canvasReducer(
+      stateWith({
+        flow: ["a"],
+        nodeMap: createNodeMap([current]),
+        nodeDimensions: new Map([["a", { width: 100, height: 40 }]]),
+        history: [
+          {
+            flow: ["a"],
+            nodeMap: createNodeMap([previous]),
+            selectedNodes: new Set<string>(),
+          },
+        ],
+      }),
+      { type: "UNDO" },
+    );
+
+    expect(s.nodeDimensions.has("a")).toBe(false);
+  });
+
+  it("SYNC_DAG 建立外部基线且不记录编辑历史", () => {
+    const oldSnapshot = {
+      flow: ["a"],
+      nodeMap: createNodeMap([node("a")]),
+      selectedNodes: new Set<string>(),
+    };
+    const s = canvasReducer(
+      stateWith({
+        dirty: true,
+        flow: ["a"],
+        nodeMap: oldSnapshot.nodeMap,
+        history: [oldSnapshot],
+        future: [oldSnapshot],
+      }),
+      {
+        type: "SYNC_DAG",
+        payload: {
+          flow: ["b"],
+          nodeMap: createNodeMap([node("b")]),
+        },
+      },
+    );
+
+    expect(s.dirty).toBe(false);
+    expect(s.history).toEqual([]);
+    expect(s.future).toEqual([]);
+    expect(s.flow).toEqual(["b"]);
   });
 });

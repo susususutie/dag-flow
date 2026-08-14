@@ -26,6 +26,17 @@ const ZoomPane = forwardRef<HTMLDivElement, ZoomPaneProps>(function ZoomPane({ c
   const stateRef = useRef(state);
   stateRef.current = state;
 
+  const handlePointerDownCapture = useCallback((event: React.PointerEvent<HTMLDivElement>) => {
+    const target = event.target;
+    if (
+      target instanceof HTMLElement &&
+      target.closest('input, textarea, select, [contenteditable=""], [contenteditable="true"]')
+    ) {
+      return;
+    }
+    containerRef.current?.focus({ preventScroll: true });
+  }, []);
+
   const handleWheel = useCallback(
     (e: WheelEvent) => {
       if (!stateRef.current.zoomOnScroll) return;
@@ -53,7 +64,12 @@ const ZoomPane = forwardRef<HTMLDivElement, ZoomPaneProps>(function ZoomPane({ c
   }, [handleWheel, state.zoomOnScroll]);
 
   return (
-    <div ref={containerRef} className="dag-flow__renderer">
+    <div
+      ref={containerRef}
+      className="dag-flow__renderer"
+      tabIndex={-1}
+      onPointerDownCapture={handlePointerDownCapture}
+    >
       {children}
     </div>
   );

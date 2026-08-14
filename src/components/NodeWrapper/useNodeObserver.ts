@@ -1,6 +1,10 @@
 import { useEffect, useRef } from "react";
 
-export default function useNodeObserver(resizeObserver: ResizeObserver | null) {
+export default function useNodeObserver(
+  resizeObserver: ResizeObserver | null,
+  nodeType?: string,
+  nodeData?: unknown,
+) {
   const nodeRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -8,7 +12,7 @@ export default function useNodeObserver(resizeObserver: ResizeObserver | null) {
     if (!node || !resizeObserver) return;
     resizeObserver.observe(node);
     return () => resizeObserver.unobserve(node);
-  }, [resizeObserver]);
+  }, [nodeData, nodeType, resizeObserver]);
 
   return nodeRef;
 }

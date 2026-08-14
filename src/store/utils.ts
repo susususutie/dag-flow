@@ -79,9 +79,25 @@ export function nodeMapsEqual(first: Map<string, DAGNode>, second: Map<string, D
   if (first === second) return true;
   if (first.size !== second.size) return false;
   const secondEntries = second.entries();
-  for (const [id, data] of first) {
+  for (const [id, node] of first) {
     const next = secondEntries.next().value;
-    if (!next || next[0] !== id || next[1] !== data) return false;
+    if (!next || next[0] !== id) return false;
+    const other = next[1] as DAGNode;
+    if (node === other) continue;
+    const keys = new Set([...Object.keys(node), ...Object.keys(other)]);
+    for (const key of keys) {
+      if (key === "position") {
+        if (node.position?.x !== other.position?.x || node.position?.y !== other.position?.y)
+          return false;
+      } else if (key === "selected") {
+        if (Boolean(node.selected) !== Boolean(other.selected)) return false;
+      } else if (
+        (node as unknown as Record<string, unknown>)[key] !==
+        (other as unknown as Record<string, unknown>)[key]
+      ) {
+        return false;
+      }
+    }
   }
   return true;
 }
@@ -253,9 +269,10 @@ export function syncCanvasProps(
     const nextNodeMap =
       nextNodesProp === undefined ? nextState.nodeMap : createNodeMap(nextNodesProp);
     assertValidDAG(nextNodeMap, nextFlow);
-    if (!flowsEqual(nextFlow, nextState.flow) || !nodeMapsEqual(nextNodeMap, nextState.nodeMap)) {
+    const currentNodeMap = createNodeMap(getNodesFromState(nextState));
+    if (!flowsEqual(nextFlow, nextState.flow) || !nodeMapsEqual(nextNodeMap, currentNodeMap)) {
       nextState = canvasReducer(nextState, {
-        type: "SET_DAG",
+        type: "SYNC_DAG",
         payload: { flow: nextFlow, nodeMap: nextNodeMap },
       });
     }

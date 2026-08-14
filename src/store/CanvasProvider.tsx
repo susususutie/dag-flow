@@ -32,8 +32,11 @@ const GRAPH_ACTION_TYPES = new Set([
   "DELETE_NODE",
   "UPDATE_SELECTED_NODE",
   "CLEAR_SELECTION",
+  "SET_FLOW",
   "SET_DAG",
   "UPDATE_NODE_POSITION",
+  "UNDO",
+  "REDO",
 ]);
 
 /** 基于 reducer 已接受的前后状态生成 changes，避免无效 action 产生错误通知 */
@@ -60,18 +63,12 @@ function buildNodeChanges(
     }
   });
 
-  if (
-    actions.some(
-      (action) => action.type === "UPDATE_SELECTED_NODE" || action.type === "CLEAR_SELECTION",
-    )
-  ) {
-    const selectedIds = new Set([...previousState.selectedNodes, ...nextState.selectedNodes]);
-    selectedIds.forEach((id) => {
-      const wasSelected = previousState.selectedNodes.has(id);
-      const selected = nextState.selectedNodes.has(id);
-      if (wasSelected !== selected) changes.push({ type: "select", id, selected });
-    });
-  }
+  const selectedIds = new Set([...previousState.selectedNodes, ...nextState.selectedNodes]);
+  selectedIds.forEach((id) => {
+    const wasSelected = previousState.selectedNodes.has(id);
+    const selected = nextState.selectedNodes.has(id);
+    if (wasSelected !== selected) changes.push({ type: "select", id, selected });
+  });
 
   positionChanges.forEach(({ id, position, dragging }) => {
     const node = nextState.nodeMap.get(id);
@@ -87,8 +84,12 @@ function getGraphActions(action: CanvasAction): CanvasAction[] {
   return action.payload.filter((item) => GRAPH_ACTION_TYPES.has(item.type));
 }
 
-function getFlowChangeReason(actions: CanvasAction[]): "update" | "remove" {
-  if (actions.some((action) => action.type === "DELETE_NODE")) return "remove";
+function getFlowChangeReason(
+  previousState: StoreState,
+  nextState: StoreState,
+): "insert" | "update" | "remove" {
+  if (nextState.nodeMap.size > previousState.nodeMap.size) return "insert";
+  if (nextState.nodeMap.size < previousState.nodeMap.size) return "remove";
   return "update";
 }
 
@@ -148,8 +149,10 @@ const CanvasProvider = forwardRef<DAGInstance, CanvasProviderPropsWithChildren>(
           onNodesChangeRef.current?.(changes);
         }
 
-        if (previousState.flow !== nextState.flow) {
-          onFlowChangeRef.current?.(nextState.flow, { reason: getFlowChangeReason(graphActions) });
+        if (!flowsEqual(previousState.flow, nextState.flow)) {
+          onFlowChangeRef.current?.(nextState.flow, {
+            reason: getFlowChangeReason(previousState, nextState),
+          });
         }
       };
 

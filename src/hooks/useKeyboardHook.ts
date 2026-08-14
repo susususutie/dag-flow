@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef } from "react";
+import type { RefObject } from "react";
 import useCanvasState from "./useCanvasState.ts";
 import useCanvasDispatch from "./useCanvasDispatch.ts";
 import useDAGInstance from "./useDAGInstance.ts";
@@ -10,6 +11,15 @@ let dagClipboard: FlowClipboard | null = null;
 export interface KeyboardHookOptions {
   /** 删除/复制/粘贴/撤销快捷键开关，默认开启 */
   enabled?: boolean;
+  /** 快捷键生效的画布元素 */
+  target?: RefObject<HTMLElement | null>;
+}
+
+function isEditableTarget(target: EventTarget | null): boolean {
+  if (!(target instanceof HTMLElement)) return false;
+  return Boolean(
+    target.closest('input, textarea, select, [contenteditable=""], [contenteditable="true"]'),
+  );
 }
 
 /**
@@ -21,7 +31,7 @@ export interface KeyboardHookOptions {
  * 输入框/文本域中不触发。
  */
 export default function useKeyboardHook(options: KeyboardHookOptions = {}) {
-  const { enabled = true } = options;
+  const { enabled = true, target } = options;
   const instance = useDAGInstance();
   const dispatch = useCanvasDispatch();
   const { selectedNodes } = useCanvasState();
@@ -95,10 +105,7 @@ export default function useKeyboardHook(options: KeyboardHookOptions = {}) {
     if (!enabledRef.current) return;
 
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.target instanceof HTMLElement) {
-        const tagName = event.target.tagName;
-        if (tagName === "INPUT" || tagName === "TEXTAREA" || tagName === "SELECT") return;
-      }
+      if (isEditableTarget(event.target)) return;
       const mod = event.metaKey || event.ctrlKey;
 
       if (event.key === "Delete" || event.key === "Backspace") {
@@ -133,7 +140,9 @@ export default function useKeyboardHook(options: KeyboardHookOptions = {}) {
       }
     };
 
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, [deleteSelection, duplicateSelection, copySelection, pasteClipboard, dispatch]);
+    const element = target?.current;
+    if (!element) return;
+    element.addEventListener("keydown", onKeyDown);
+    return () => element.removeEventListener("keydown", onKeyDown);
+  }, [deleteSelection, duplicateSelection, copySelection, pasteClipboard, dispatch, target]);
 }

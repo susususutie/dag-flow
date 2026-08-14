@@ -6,6 +6,11 @@ import useCanvasTransform from "../hooks/useCanvasTransform.ts";
 import useRafCanvasDispatch from "../hooks/useRafCanvasDispatch.ts";
 import useSize from "../hooks/useSize.ts";
 import type { PanelPosition } from "../types/index.ts";
+import {
+  centerViewportOnMiniMapPoint,
+  getMiniMapViewportOrigin,
+  toMiniMapCoordinate,
+} from "./minimapGeometry.ts";
 
 export interface MiniMapProps {
   /** 小地图宽度，默认 198 */
@@ -85,6 +90,10 @@ export default function MiniMap(props: MiniMapProps) {
   );
   const originWidth = flowOriginSize.maxLeft - flowOriginSize.minLeft;
   const originHeight = flowOriginSize.maxTop - flowOriginSize.minTop;
+  const graphOrigin = useMemo(
+    () => ({ x: flowOriginSize.minLeft, y: flowOriginSize.minTop }),
+    [flowOriginSize.minLeft, flowOriginSize.minTop],
+  );
   const flowScale = useMemo(() => {
     if (!Number.isFinite(originWidth) || !Number.isFinite(originHeight)) return null;
     if (originWidth && originHeight && minimapWrapperSize?.width && minimapWrapperSize?.height) {
@@ -106,22 +115,29 @@ export default function MiniMap(props: MiniMapProps) {
         key={node.id}
         className="dag-flow-minimap__node"
         style={{
-          left: node.x * flowScale,
-          top: node.y * flowScale,
+          left: toMiniMapCoordinate(node.x, graphOrigin.x, flowScale),
+          top: toMiniMapCoordinate(node.y, graphOrigin.y, flowScale),
           width: node.width * flowScale,
           height: node.height * flowScale,
         }}
       />
     ));
-  }, [flowScale, nodes]);
+  }, [flowScale, graphOrigin.x, graphOrigin.y, nodes]);
 
   const isDraggingRef = useRef(false);
   const dragLastRef = useRef({ x: 0, y: 0 });
 
+  const visibleLeft = -x / zoom;
+  const visibleTop = -y / zoom;
   const hide =
-    !containerSize ||
-    !flowOriginSize ||
-    (containerSize.width / zoom > originWidth && containerSize.height / zoom > originHeight);
+    nodes.length === 0 ||
+    Boolean(
+      containerSize &&
+      flowOriginSize.minLeft >= visibleLeft &&
+      flowOriginSize.minTop >= visibleTop &&
+      flowOriginSize.maxLeft <= visibleLeft + containerSize.width / zoom &&
+      flowOriginSize.maxTop <= visibleTop + containerSize.height / zoom,
+    );
   if (hide && autoShow) return null;
 
   const handleClick = (e: React.MouseEvent) => {
@@ -131,9 +147,14 @@ export default function MiniMap(props: MiniMapProps) {
     if (!rect) return;
     const clickX = e.clientX - rect.left;
     const clickY = e.clientY - rect.top;
-    const transformX = (-clickX / flowScale) * zoom + containerSize.width / 2;
-    const transformY = (-clickY / flowScale) * zoom + containerSize.height / 2;
-    dispatch({ type: "PAN", payload: { x: transformX, y: transformY } });
+    const viewport = centerViewportOnMiniMapPoint(
+      { x: clickX, y: clickY },
+      graphOrigin,
+      flowScale,
+      containerSize,
+      zoom,
+    );
+    dispatch({ type: "PAN", payload: viewport });
   };
   const handlePointerDown = (e: React.PointerEvent) => {
     if (!pannable || !dispatch) return;
@@ -172,6 +193,9 @@ export default function MiniMap(props: MiniMapProps) {
     });
   };
 
+  const viewportOrigin = flowScale
+    ? getMiniMapViewportOrigin({ x, y, zoom }, graphOrigin, flowScale)
+    : null;
   const wrapperStyle: CSSProperties = {
     ...POSITION_OFFSET[position],
     ...(position === "none" ? {} : { position: "absolute", zIndex: 30 }),
@@ -214,7 +238,7 @@ export default function MiniMap(props: MiniMapProps) {
                 cursor: pannable ? "move" : "default",
                 width: containerSize.width * flowScale,
                 height: containerSize.height * flowScale,
-                transform: `translate(${(-x * flowScale) / zoom}px, ${(-y * flowScale) / zoom}px) scale(${1 / zoom})`,
+                transform: `translate(${viewportOrigin?.x ?? 0}px, ${viewportOrigin?.y ?? 0}px) scale(${1 / zoom})`,
               }}
             />
           </div>

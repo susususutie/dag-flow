@@ -21,6 +21,69 @@ function pushSnapshot(
   return [...history, snapshot].slice(-HISTORY_LIMIT);
 }
 
+function reconcileNodeDimensions(
+  previousNodeMap: StoreState["nodeMap"],
+  nextNodeMap: StoreState["nodeMap"],
+  dimensions: StoreState["nodeDimensions"],
+): StoreState["nodeDimensions"] {
+  const nextDimensions = new Map<string, { width: number; height: number }>();
+  nextNodeMap.forEach((node, id) => {
+    const previousNode = previousNodeMap.get(id);
+    const measured = dimensions.get(id);
+    if (!previousNode || !measured) return;
+    if (previousNode.type !== node.type || previousNode.data !== node.data) return;
+    nextDimensions.set(id, measured);
+  });
+  return nextDimensions;
+}
+
+function replaceDAG(
+  state: StoreState,
+  payload: Extract<CanvasAction, { type: "SET_DAG" }>["payload"],
+  source: "edit" | "sync",
+): StoreState {
+  const flow = payload.flow === state.flow ? state.flow : new Flow(payload.flow).toArray();
+  const nodeMap = payload.nodeMap === state.nodeMap ? state.nodeMap : new Map(payload.nodeMap);
+  if (flow === state.flow && nodeMap === state.nodeMap) return state;
+
+  const selectedNodes =
+    nodeMap === state.nodeMap
+      ? state.selectedNodes
+      : new Set(
+          Array.from(nodeMap.values())
+            .filter((node) => node.selected && (node.selectable ?? state.nodesSelectable))
+            .map((node) => node.id),
+        );
+  const nodeDimensions =
+    nodeMap === state.nodeMap
+      ? state.nodeDimensions
+      : reconcileNodeDimensions(state.nodeMap, nodeMap, state.nodeDimensions);
+
+  if (source === "sync") {
+    return {
+      ...state,
+      dirty: false,
+      flow,
+      nodeMap,
+      nodeDimensions,
+      selectedNodes,
+      history: [],
+      future: [],
+    };
+  }
+
+  return {
+    ...state,
+    dirty: true,
+    flow,
+    nodeMap,
+    nodeDimensions,
+    selectedNodes,
+    history: pushSnapshot(state.history, snapshotOf(state)),
+    future: [],
+  };
+}
+
 export default function canvasReducer(state: StoreState, action: CanvasAction): StoreState {
   switch (action.type) {
     case "BATCH": {
@@ -74,50 +137,20 @@ export default function canvasReducer(state: StoreState, action: CanvasAction): 
       if (flow === state.flow) return state;
       return {
         ...state,
+        dirty: true,
         flow,
         history: pushSnapshot(state.history, snapshotOf(state)),
         future: [],
       };
     }
     case "SET_NODE_MAP": {
-      const nodeMap = new Map(action.payload);
-      const selectedNodes = new Set(
-        Array.from(nodeMap.values())
-          .filter((node) => node.selected && (node.selectable ?? state.nodesSelectable))
-          .map((node) => node.id),
-      );
-      if (nodeMap === state.nodeMap) return state;
-      return {
-        ...state,
-        nodeMap,
-        selectedNodes,
-        history: pushSnapshot(state.history, snapshotOf(state)),
-        future: [],
-      };
+      return replaceDAG(state, { flow: state.flow, nodeMap: action.payload }, "edit");
     }
     case "SET_DAG": {
-      const flow =
-        action.payload.flow === state.flow ? state.flow : new Flow(action.payload.flow).toArray();
-      const nodeMap =
-        action.payload.nodeMap === state.nodeMap ? state.nodeMap : new Map(action.payload.nodeMap);
-      if (flow === state.flow && nodeMap === state.nodeMap) return state;
-      const selectedNodes =
-        nodeMap === state.nodeMap
-          ? state.selectedNodes
-          : new Set(
-              Array.from(nodeMap.values())
-                .filter((node) => node.selected && (node.selectable ?? state.nodesSelectable))
-                .map((node) => node.id),
-            );
-      return {
-        ...state,
-        dirty: true,
-        flow,
-        nodeMap,
-        selectedNodes,
-        history: pushSnapshot(state.history, snapshotOf(state)),
-        future: [],
-      };
+      return replaceDAG(state, action.payload, "edit");
+    }
+    case "SYNC_DAG": {
+      return replaceDAG(state, action.payload, "sync");
     }
     case "DELETE_NODE": {
       const { ids } = action.payload;
@@ -231,6 +264,7 @@ export default function canvasReducer(state: StoreState, action: CanvasAction): 
         future,
         flow: entry.flow,
         nodeMap: entry.nodeMap,
+        nodeDimensions: reconcileNodeDimensions(state.nodeMap, entry.nodeMap, state.nodeDimensions),
         selectedNodes: entry.selectedNodes,
       };
     }
@@ -246,6 +280,7 @@ export default function canvasReducer(state: StoreState, action: CanvasAction): 
         future,
         flow: entry.flow,
         nodeMap: entry.nodeMap,
+        nodeDimensions: reconcileNodeDimensions(state.nodeMap, entry.nodeMap, state.nodeDimensions),
         selectedNodes: entry.selectedNodes,
       };
     }

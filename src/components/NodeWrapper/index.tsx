@@ -29,7 +29,7 @@ function NodeWrapper({ id, resizeObserver, ...rest }: NodeWrapperProps) {
   const isSelected = useCanvasStore((state) => state.selectedNodes.has(id));
   const dispatch = useCanvasDispatch();
   const { onNodeClick } = useCanvasInteraction();
-  const ref = useNodeObserver(resizeObserver);
+  const ref = useNodeObserver(resizeObserver, node?.type, node?.data);
   const position = node?.position ?? ORIGIN;
   const draggable = node?.draggable ?? nodesDraggable;
   const nodeDrag = useNodeDrag(id, position, draggable);

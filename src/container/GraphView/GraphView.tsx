@@ -61,6 +61,10 @@ const GraphView = forwardRef<GraphViewHandle, { children?: ReactNode }>(function
     () => getNodesBounds(positions, nodeDimensions),
     [nodeDimensions, positions],
   );
+  const nodesInitialized = useMemo(
+    () => nodeMap.size > 0 && Array.from(nodeMap.keys()).every((id) => nodeDimensions.has(id)),
+    [nodeDimensions, nodeMap],
+  );
   const setRendererRef = useCallback((element: HTMLDivElement | null) => {
     rendererRef.current = element;
   }, []);
@@ -111,17 +115,10 @@ const GraphView = forwardRef<GraphViewHandle, { children?: ReactNode }>(function
   );
   const didInitialFitView = useRef(false);
   useLayoutEffect(() => {
-    if (
-      !fitView ||
-      didInitialFitView.current ||
-      !bounds ||
-      nodeMap.size === 0 ||
-      nodeMap.size !== nodeDimensions.size
-    )
-      return;
+    if (!fitView || didInitialFitView.current || !bounds || !nodesInitialized) return;
     didInitialFitView.current = true;
     fitCurrentView(fitViewOptions);
-  }, [bounds, fitCurrentView, fitView, fitViewOptions, nodeDimensions.size, nodeMap.size]);
+  }, [bounds, fitCurrentView, fitView, fitViewOptions, nodesInitialized]);
 
   const viewApi = useMemo<ViewApi>(
     () => ({
@@ -152,7 +149,7 @@ const GraphView = forwardRef<GraphViewHandle, { children?: ReactNode }>(function
     getViewport: () => instance?.getTransform() ?? { x: 0, y: 0, zoom: 1 },
   }));
 
-  useKeyboardHook();
+  useKeyboardHook({ target: rendererRef });
 
   return (
     <ZoomPane ref={setRendererRef}>

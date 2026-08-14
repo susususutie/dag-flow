@@ -63,6 +63,7 @@ export type CanvasAction =
   | { type: "SET_FLOW"; payload: FlowModel }
   | { type: "SET_NODE_MAP"; payload: Map<string, DAGNode> }
   | { type: "SET_DAG"; payload: { flow: FlowModel; nodeMap: Map<string, DAGNode> } }
+  | { type: "SYNC_DAG"; payload: { flow: FlowModel; nodeMap: Map<string, DAGNode> } }
   | { type: "DELETE_NODE"; payload: { ids: string[] } }
   | {
       type: "SET_NODE_DIMENSIONS";

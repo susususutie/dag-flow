@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState } from "react";
-import { DagFlow, Background, Controls, MiniMap } from "dag-flow";
+import { DagFlow, Background, Controls, MiniMap, applyNodeChanges } from "dag-flow";
 import type { DAGNode, FlowModel, NodeChanges, OnBeforeDeleteResult } from "dag-flow";
 
 const INITIAL_NODES: DAGNode[] = [
@@ -36,23 +36,7 @@ export default function ControlledDemo() {
       for (const change of changes) {
         record(`${CHANGE_TEXT[change.type]}: ${"id" in change ? change.id : "?"}`);
       }
-      setNodes((current) => {
-        let next = current;
-        for (const change of changes) {
-          if (change.type === "add") {
-            next = [...next, change.item];
-          } else if (change.type === "remove") {
-            next = next.filter((node) => node.id !== change.id);
-          } else if (change.type === "replace") {
-            next = next.map((node) => (node.id === change.id ? change.item : node));
-          } else if (change.type === "select") {
-            next = next.map((node) =>
-              node.id === change.id ? { ...node, selected: change.selected } : node,
-            );
-          }
-        }
-        return next;
-      });
+      setNodes((current) => applyNodeChanges(changes, current));
     },
     [record],
   );
