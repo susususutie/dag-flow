@@ -8,7 +8,7 @@ import {
 } from "dag-flow";
 import { BASIC_FLOW, BASIC_NODES, nodeTypes } from "./shared.tsx";
 
-/** DagFlowProvider 非受控：内层组件通过 hooks 读取画布状态。 */
+/** 外层 Provider 共享 store，DagFlow 通过 defaultNodes/defaultFlow 非受控初始化。 */
 export default function ProviderUncontrolledDemo() {
   return (
     <DagFlowProvider>

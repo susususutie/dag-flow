@@ -1,8 +1,8 @@
 import Flow from "./Flow.ts";
-import { computeLayout, getNodesBounds, type LayoutOptions } from "./layout.ts";
+import { computeLayout, getNodesBounds, type DefaultLayoutOptions } from "./layout.ts";
 import type { FlowModel, XYPosition, NodeMeasure } from "../types/index.ts";
 
-export interface BuildFlowGraphOptions extends LayoutOptions {
+export interface BuildFlowGraphOptions extends DefaultLayoutOptions {
   /** 已测量节点尺寸（未测量节点使用 defaultNodeWidth/Height） */
   dimensions?: Map<string, NodeMeasure>;
   /** 用户手动固定位置的节点（焊死不参与布局，后续列自动避让） */

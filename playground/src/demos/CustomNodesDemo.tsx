@@ -1,4 +1,4 @@
-import { DagFlow, DagFlowProvider } from "dag-flow";
+import { DagFlow } from "dag-flow";
 import { StatusNode, STATUS_COLORS } from "./shared.tsx";
 import type { StatusNodeProps } from "./shared.tsx";
 
@@ -52,16 +52,14 @@ const NODES = [
 
 export default function CustomNodesDemo() {
   return (
-    <DagFlowProvider>
-      <div className="demo-canvas">
-        <DagFlow
-          nodes={NODES}
-          flow={["request", [["approve"], ["review-1", "review-2"]], "finish"]}
-          nodeTypes={nodeTypes}
-          fitView
-          fitViewOptions={{ padding: 40 }}
-        />
-      </div>
-    </DagFlowProvider>
+    <div className="demo-canvas">
+      <DagFlow
+        defaultNodes={NODES}
+        defaultFlow={["request", [["approve"], ["review-1", "review-2"]], "finish"]}
+        nodeTypes={nodeTypes}
+        fitView
+        fitViewOptions={{ padding: 40 }}
+      />
+    </div>
   );
 }

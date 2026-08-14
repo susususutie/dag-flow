@@ -1,88 +1,81 @@
-import { useCallback, useState } from "react";
-import { DagFlow, DagFlowProvider, applyNodeChanges, Flow } from "dag-flow";
-import type { DAGNode, FlowModel, NodeChanges } from "dag-flow";
+import { useCallback, useRef } from "react";
+import { DagFlow, Flow, useDAGState } from "dag-flow";
 
-const NODE_POOL = ["A", "B", "C", "D", "E", "F"];
-
-/** 节点增删改：Flow 编程式建模 + applyNodeChanges 同步数据 + updateNode/updateNodeData 修改 */
+/** 节点增删改：Flow 编程式建模 + useDAGState 原子维护 nodes/flow */
 export default function NodeEditorDemo() {
-  const [nodes, setNodes] = useState<DAGNode[]>(() => [{ id: "A", data: { label: "A" } }]);
-  const [flow, setFlow] = useState<FlowModel>(() => new Flow(["A"]).toArray());
+  const { nodes, flow, setDAG, onNodesChange, onFlowChange } = useDAGState({
+    nodes: [{ id: "A", data: { label: "A" } }],
+    flow: new Flow(["A"]).toArray(),
+  });
+  const nextNodeNumber = useRef(1);
+  const renameNumber = useRef(1);
 
   const build = useCallback(
-    (buildFlow: (dag: Flow) => void, labelSuffix: number) => {
-      const dag = new Flow(flow);
-      buildFlow(dag);
-      setFlow(dag.toArray());
-      const needsLabel = (id: string) =>
-        !nodes.some((node) => node.id === id) && !["A", "PRE"].includes(id);
-      setNodes((current) => {
-        let next = current;
+    (buildFlow: (dag: Flow) => void) => {
+      setDAG((current) => {
+        const dag = new Flow(current.flow);
+        buildFlow(dag);
+        let nextNodes = current.nodes;
         for (const id of dag.getNodeIds()) {
-          if (!current.some((node) => node.id === id)) {
-            next = [...next, { id, data: { label: needsLabel(id) ? `${id}${labelSuffix}` : id } }];
+          if (!current.nodes.some((node) => node.id === id)) {
+            nextNodes = [...nextNodes, { id, data: { label: id } }];
           }
         }
-        return next;
+        return { nodes: nextNodes, flow: dag.toArray() };
       });
     },
-    [flow, nodes],
+    [setDAG],
   );
 
   const addSerial = useCallback(() => {
-    const id = NODE_POOL[Math.floor(Math.random() * NODE_POOL.length)];
+    const id = `N${nextNodeNumber.current++}`;
     build((dag) => {
       dag.addAfter("A", id);
-    }, 1);
+    });
   }, [build]);
 
   const addParallelBranch = useCallback(() => {
-    const id = NODE_POOL[Math.floor(Math.random() * NODE_POOL.length)];
+    const id = `N${nextNodeNumber.current++}`;
     build((dag) => {
       dag.addParallelAfter("A", id);
-    }, 2);
+    });
   }, [build]);
 
   const addStepsBefore = useCallback(() => {
     build((dag) => {
       dag.addStepsBefore("A", "PRE");
-    }, 0);
+    });
   }, [build]);
 
   const removeSelected = useCallback(() => {
-    const selected = nodes.filter((node) => node.selected).map((node) => node.id);
-    if (selected.length === 0) return;
-    const dag = new Flow(flow);
-    dag.removeNodes(...selected);
-    setFlow(dag.toArray());
-    setNodes((current) => current.filter((node) => !selected.includes(node.id)));
-  }, [flow, nodes]);
+    setDAG((current) => {
+      const selected = current.nodes.filter((node) => node.selected).map((node) => node.id);
+      if (selected.length === 0) return current;
+      const dag = new Flow(current.flow);
+      dag.removeNodes(...selected);
+      return {
+        nodes: current.nodes.filter((node) => !selected.includes(node.id)),
+        flow: dag.toArray(),
+      };
+    });
+  }, [setDAG]);
 
   const renameFirst = useCallback(() => {
-    setNodes((current) =>
-      current.map((node) =>
-        node.id === "A"
-          ? { ...node, data: { ...node.data, label: `A·${Date.now() % 1000}` } }
-          : node,
+    const label = `A·${renameNumber.current++}`;
+    setDAG((current) => ({
+      ...current,
+      nodes: current.nodes.map((node) =>
+        node.id === "A" ? { ...node, data: { ...node.data, label } } : node,
       ),
-    );
-  }, []);
+    }));
+  }, [setDAG]);
 
   const selectFirst = useCallback(() => {
-    const changes: NodeChanges = [{ type: "select", id: "A", selected: true }];
-    setNodes((current) => applyNodeChanges(changes, current));
-  }, []);
-
-  const onNodesChange = useCallback((changes: NodeChanges) => {
-    setNodes((current) => applyNodeChanges(changes, current));
-  }, []);
-
-  const onFlowChange = useCallback((nextFlow: FlowModel) => {
-    setFlow(nextFlow);
-  }, []);
+    onNodesChange([{ type: "select", id: "A", selected: true }]);
+  }, [onNodesChange]);
 
   return (
-    <DagFlowProvider>
+    <>
       <div className="demo-canvas">
         <DagFlow
           nodes={nodes}
@@ -104,6 +97,6 @@ export default function NodeEditorDemo() {
         <button onClick={renameFirst}>重命名 A</button>
         <button onClick={removeSelected}>删除选中</button>
       </div>
-    </DagFlowProvider>
+    </>
   );
 }

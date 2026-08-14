@@ -87,4 +87,49 @@ describe("默认边网络", () => {
       { x: 840, y: 0 },
     ]);
   });
+
+  it("删除分支后重新布局前主干仍使用串行节点中心线", () => {
+    const initialFlow: FlowModel = ["start", [["a"], ["b"], ["c"], ["d"]], "done"];
+    const changedFlow: FlowModel = ["start", [["a"], ["b"], ["c"]], "done"];
+    const { dimensions, nodeMap } = createGeometry(initialFlow, [
+      "start",
+      "a",
+      "b",
+      "c",
+      "d",
+      "done",
+    ]);
+    const routes = getFlowEdgeRoutes(changedFlow, nodeMap, dimensions, "horizontal");
+
+    expect(routes.find((route) => route.id === "split:1:a")?.points[0].y).toBe(0);
+    expect(routes.find((route) => route.id === "merge:1:c")?.points.at(-1)?.y).toBe(0);
+    expect(routes.find((route) => route.id === "transition:0->1")?.points).toEqual([
+      { x: 100, y: 0 },
+      { x: 260, y: 0 },
+    ]);
+  });
+
+  it("垂直布局的主干保持在同一条垂直线上", () => {
+    const flow: FlowModel = ["start", [["a"], ["b"], ["c"], ["d"]], "done"];
+    const ids = ["start", "a", "b", "c", "d", "done"];
+    const dimensions = new Map(ids.map((id) => [id, { width: 100, height: 40 }]));
+    const positions = computeLayout(flow, dimensions, new Map(), {
+      hGap: 160,
+      vGap: 16,
+      direction: "vertical",
+    });
+    const nodeMap = new Map<string, DAGNode>(
+      ids.map((id) => [id, { id, position: positions.get(id) }]),
+    );
+    const routes = getFlowEdgeRoutes(flow, nodeMap, dimensions, "vertical");
+
+    expect(routes.find((route) => route.id === "transition:0->1")?.points).toEqual([
+      { x: 0, y: 40 },
+      { x: 0, y: 200 },
+    ]);
+    expect(routes.find((route) => route.id === "transition:1->2")?.points).toEqual([
+      { x: 0, y: 560 },
+      { x: 0, y: 720 },
+    ]);
+  });
 });

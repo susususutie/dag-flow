@@ -80,33 +80,32 @@ function App() {
 
 `DagFlow` 会复用外层 `DagFlowProvider` 的 store，不会创建第二份状态。hook 组件直接作为 `DagFlow` 的 `children` 时，本身已位于画布 Provider 内，无需再包一层 `DagFlowProvider`。
 
-## 显式布局
+## 自动布局与显式布局
 
-布局算法只负责计算坐标。`layout()` 读取最新已提交的 DAG 和节点尺寸，返回包含完整坐标的 DAG 数据，不修改画布状态，也不触发 `onNodesChange`。
+`autoLayout` 默认为 `true`。节点完成测量后，画布会自动执行一次布局；节点增删或 `flow` 变化后，画布会再次布局并通过 `onNodesChange` 发出 position changes。自动布局不调用 `fitView()`，不会修改当前 viewport，也不会增加撤销历史。
+
+`fitView` 只在首次自动布局完成后生效。后续如需重新适配视口，应显式调用实例的 `fitView()`。
+
+已有坐标需要保持不变，或需要完全控制布局时，可关闭自动布局：
+
+```tsx
+<DagFlow autoLayout={false} nodes={nodes} flow={flow} />
+```
+
+关闭自动布局后，仍可通过 `layout()` 进行一次纯计算。`layout()` 读取最新已提交的 DAG 和节点尺寸，返回包含完整坐标的 DAG 数据，不修改画布状态，也不触发 `onNodesChange`。
 
 ```tsx
 const instance = useDAGInstance();
-const initialized = useNodesInitialized();
-const pendingFitNodes = useRef<DAGNode[] | null>(null);
 
-useEffect(() => {
-  if (!initialized) return;
-  void instance.layout().then((nextDAG) => {
-    pendingFitNodes.current = nextDAG.nodes;
-    setDAG(nextDAG);
-  });
-}, [initialized, instance, setDAG]);
+async function handleLayout() {
+  setDAG(await instance.layout());
+}
 
-useEffect(() => {
-  if (pendingFitNodes.current !== nodes) return;
-  pendingFitNodes.current = null;
-  instance.fitView();
-}, [instance, nodes]);
+<button onClick={handleLayout}>重新布局</button>;
+<button onClick={() => instance.fitView()}>适配视口</button>;
 ```
 
-初始数据已有有效坐标时，可以直接使用 `<DagFlow fitView />`。初始数据需要自动布局时，应在布局结果写回并提交后调用实例的 `fitView()`。
-
-`layoutEngine` 是行为依赖，不进入 store。算法配置由工厂闭包持有：
+`layoutEngine` 是行为依赖，不进入 store。自动布局和显式布局均使用该引擎，算法配置由工厂闭包持有：
 
 ```tsx
 const engine = createDefaultLayoutEngine({ hGap: 160, vGap: 16 });
@@ -114,6 +113,13 @@ const engine = createDefaultLayoutEngine({ hGap: 160, vGap: 16 });
 ```
 
 默认布局把 `hGap` 解释为一段连线的长度。并行组会在节点前后分别保留分叉、汇合段；连续并行组之间还会保留一段主干。所有分支从同一点展开，并在最长路径之后汇合，较短路径会延伸到该汇合点。
+
+主干的交叉轴坐标固定为 `0`。从左到右布局时，分支沿固定水平主干的上下两侧扩展；从上到下布局时，分支沿固定垂直主干的左右两侧扩展。垂直布局需要同时配置节点 Handle 方向和布局引擎方向：
+
+```tsx
+const engine = createDefaultLayoutEngine({ direction: "vertical" });
+<DagFlow direction="vertical" layoutEngine={engine} />;
+```
 
 自定义布局引擎接收 `{ nodes, flow, dimensions }`，返回 `{ positions }`，可同步或异步执行。
 

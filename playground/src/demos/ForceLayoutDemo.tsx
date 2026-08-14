@@ -12,6 +12,7 @@ export default function ForceLayoutDemo() {
         </div>
         <div className="demo-canvas">
           <DagFlow
+            autoLayout={false}
             nodes={dagState.nodes}
             flow={dagState.flow}
             nodeTypes={nodeTypes}

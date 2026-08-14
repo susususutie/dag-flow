@@ -80,10 +80,10 @@ const SCENES: Array<{
   {
     group: "组织架构",
     items: [
-      { key: "provider", label: "DagFlowProvider 受控", render: <ProviderDemo /> },
+      { key: "provider", label: "外层 Provider + 受控画布", render: <ProviderDemo /> },
       {
         key: "provider-uncontrolled",
-        label: "DagFlowProvider 非受控",
+        label: "外层 Provider + 非受控画布",
         render: <ProviderUncontrolledDemo />,
       },
     ],

@@ -1,14 +1,10 @@
 import { useMemo, useState } from "react";
-import { createDefaultLayoutEngine, DagFlow, useDAGState } from "dag-flow";
-import { BASIC_FLOW, BASIC_NODES, LayoutRunner, nodeTypes } from "./shared.tsx";
+import { createDefaultLayoutEngine, DagFlow } from "dag-flow";
+import { BASIC_FLOW, BASIC_NODES, nodeTypes } from "./shared.tsx";
 
 export default function GapDemo() {
   const [hGap, setHGap] = useState(160);
   const [vGap, setVGap] = useState(16);
-  const { nodes, flow, setDAG, onNodesChange, onFlowChange } = useDAGState({
-    nodes: BASIC_NODES,
-    flow: BASIC_FLOW,
-  });
   const engine = useMemo(() => createDefaultLayoutEngine({ hGap, vGap }), [hGap, vGap]);
 
   return (
@@ -39,15 +35,11 @@ export default function GapDemo() {
       </div>
       <div className="demo-canvas">
         <DagFlow
-          nodes={nodes}
-          flow={flow}
+          defaultNodes={BASIC_NODES}
+          defaultFlow={BASIC_FLOW}
           nodeTypes={nodeTypes}
           layoutEngine={engine}
-          onNodesChange={onNodesChange}
-          onFlowChange={onFlowChange}
-        >
-          <LayoutRunner engine={engine} nodes={nodes} setDAG={setDAG} />
-        </DagFlow>
+        />
       </div>
     </div>
   );

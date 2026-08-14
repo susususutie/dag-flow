@@ -1,14 +1,16 @@
 import { useState } from "react";
-import { DagFlow, Flow, useDAGState } from "dag-flow";
+import { DagFlow, Flow } from "dag-flow";
 import type { LayoutEngine, XYPosition } from "dag-flow";
-import { BASIC_FLOW, BASIC_NODES, LayoutRunner, nodeTypes } from "./shared.tsx";
+import { BASIC_FLOW, BASIC_NODES, nodeTypes } from "./shared.tsx";
 
 const snakeEngine: LayoutEngine = ({ flow }) => {
   const ids = new Flow(flow).getNodeIds();
   const positions = new Map<string, XYPosition>();
+  const columns = 4;
   for (const [index, id] of ids.entries()) {
-    const col = index % 4;
-    const row = Math.floor(index / 4);
+    const row = Math.floor(index / columns);
+    const offset = index % columns;
+    const col = row % 2 === 0 ? offset : columns - offset - 1;
     positions.set(id, { x: col * 310, y: row * 96 });
   }
   return { positions };
@@ -16,10 +18,6 @@ const snakeEngine: LayoutEngine = ({ flow }) => {
 
 export default function CustomLayoutDemo() {
   const [engineName, setEngineName] = useState<"default" | "snake">("default");
-  const { nodes, flow, setDAG, onNodesChange, onFlowChange } = useDAGState({
-    nodes: BASIC_NODES,
-    flow: BASIC_FLOW,
-  });
   const engine = engineName === "snake" ? snakeEngine : undefined;
 
   return (
@@ -40,15 +38,11 @@ export default function CustomLayoutDemo() {
       </div>
       <div className="demo-canvas">
         <DagFlow
-          nodes={nodes}
-          flow={flow}
+          defaultNodes={BASIC_NODES}
+          defaultFlow={BASIC_FLOW}
           nodeTypes={nodeTypes}
           layoutEngine={engine}
-          onNodesChange={onNodesChange}
-          onFlowChange={onFlowChange}
-        >
-          <LayoutRunner engine={engine} nodes={nodes} setDAG={setDAG} />
-        </DagFlow>
+        />
       </div>
     </div>
   );

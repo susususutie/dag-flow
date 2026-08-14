@@ -148,6 +148,7 @@ export function createInitialState(props: CanvasConfigProps): StoreState {
   const minZoom = props.minZoom ?? initialState.minZoom;
   const maxZoom = props.maxZoom ?? initialState.maxZoom;
   const fitView = !!(props.fitView ?? initialState.fitView);
+  const autoLayout = props.autoLayout ?? initialState.autoLayout;
   const fitViewOptions = {
     ...props.fitViewOptions,
     padding: props.fitViewOptions?.padding ?? defaultFitViewOptions.padding,
@@ -185,6 +186,8 @@ export function createInitialState(props: CanvasConfigProps): StoreState {
     minZoom,
     maxZoom,
     fitView,
+    autoLayout,
+    layoutReady: !autoLayout || nodeMap.size === 0,
     fitViewOptions,
     zoomOnScroll,
     zoomModifier,
@@ -215,6 +218,7 @@ export function syncCanvasProps(
     minZoom: props.minZoom ?? state.minZoom,
     maxZoom: props.maxZoom ?? state.maxZoom,
     fitView: !!(props.fitView ?? state.fitView),
+    autoLayout: props.autoLayout ?? state.autoLayout,
     fitViewOptions: {
       ...(props.fitViewOptions ?? state.fitViewOptions),
       padding: props.fitViewOptions?.padding ?? state.fitViewOptions.padding,
@@ -247,6 +251,11 @@ export function syncCanvasProps(
 
   if (optionsChanged) {
     nextState = { ...nextState, ...nextOptions };
+    if (!nextOptions.autoLayout) {
+      nextState.layoutReady = true;
+    } else if (!state.autoLayout && nextOptions.autoLayout && nextState.nodeMap.size > 0) {
+      nextState.layoutReady = false;
+    }
   }
 
   if (initializeViewport) {

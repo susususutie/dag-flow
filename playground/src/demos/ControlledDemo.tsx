@@ -1,5 +1,5 @@
-import { useCallback, useMemo, useState } from "react";
-import { DagFlow, Background, Controls, MiniMap, applyNodeChanges } from "dag-flow";
+import { useCallback, useState } from "react";
+import { DagFlow, Background, Controls, MiniMap, useDAGState } from "dag-flow";
 import type { DAGNode, FlowModel, NodeChanges, OnBeforeDeleteResult } from "dag-flow";
 
 const INITIAL_NODES: DAGNode[] = [
@@ -22,8 +22,12 @@ const CHANGE_TEXT: Record<NodeChanges[number]["type"], string> = {
 
 /** 受控模式：数据与 onChange 回调均来自外部状态，用于接入业务表单/编辑态 */
 export default function ControlledDemo() {
-  const [nodes, setNodes] = useState<DAGNode[]>(INITIAL_NODES);
-  const [flow, setFlow] = useState<FlowModel>(INITIAL_FLOW);
+  const {
+    nodes,
+    flow,
+    onNodesChange: updateNodes,
+    onFlowChange: updateFlow,
+  } = useDAGState({ nodes: INITIAL_NODES, flow: INITIAL_FLOW });
   const [logs, setLogs] = useState<string[]>([]);
   const [beforeDelete, setBeforeDelete] = useState(true);
 
@@ -36,17 +40,17 @@ export default function ControlledDemo() {
       for (const change of changes) {
         record(`${CHANGE_TEXT[change.type]}: ${"id" in change ? change.id : "?"}`);
       }
-      setNodes((current) => applyNodeChanges(changes, current));
+      updateNodes(changes);
     },
-    [record],
+    [record, updateNodes],
   );
 
   const onFlowChange = useCallback(
-    (_flow: FlowModel, meta: { reason: "insert" | "remove" | "update" }) => {
+    (nextFlow: FlowModel, meta: { reason: "insert" | "remove" | "update" }) => {
       record(`拓扑变更: ${meta.reason}`);
-      setFlow(_flow);
+      updateFlow(nextFlow);
     },
-    [record],
+    [record, updateFlow],
   );
 
   const onBeforeDelete = useCallback(
@@ -56,8 +60,6 @@ export default function ControlledDemo() {
     },
     [beforeDelete, record],
   );
-
-  const flowSummary = useMemo(() => JSON.stringify(flow), [flow]);
 
   return (
     <div className="demo-controlled">
@@ -71,9 +73,6 @@ export default function ControlledDemo() {
           fitView
           fitViewOptions={{ padding: 40 }}
           onPaneClick={() => record("点击空白区域")}
-          onMove={(_event, viewport) => {
-            void viewport;
-          }}
         >
           <Background size={20} />
           <Controls />
@@ -90,7 +89,7 @@ export default function ControlledDemo() {
           />
           允许删除（onBeforeDelete 返回 false 时阻止）
         </label>
-        <div className="demo-flow-json">{flowSummary}</div>
+        <div className="demo-flow-json">{JSON.stringify(flow)}</div>
         <h3>变更日志</h3>
         <ul className="demo-log">
           {logs.map((log, index) => (

@@ -5,6 +5,7 @@ import Wrapper from "./Wrapper.tsx";
 import GraphView from "../GraphView/GraphView.tsx";
 import type { GraphViewHandle } from "../GraphView/GraphView.tsx";
 import type { CanvasProviderProps } from "../../types/index.ts";
+import AutoLayout from "./AutoLayout.tsx";
 
 export interface DagFlowProps extends CanvasProviderProps {
   id?: string;
@@ -29,6 +30,7 @@ export interface DagFlowProps extends CanvasProviderProps {
  * @param {number} [props.minZoom = 0.5] - 最小缩放比例
  * @param {number} [props.maxZoom = 2] - 最大缩放比例
  * @param {boolean} [props.fitView = false] - 是否初始缩放并居中适应画布内容（React Flow fitView）
+ * @param {boolean} [props.autoLayout = true] - 是否在初始测量和拓扑变化后自动执行布局
  * @param {Object} [props.fitViewOptions] - 初始 fitView 调用参数；未提供的 padding/horizontalAlign/verticalAlign 使用默认配置
  * @param {boolean} [props.zoomOnScroll = true] - 是否在滚动时缩放（zoomModifier 可限制触发按键）
  * @param {'none' | 'ctrl' | 'meta'} [props.zoomModifier = 'none'] - 缩放修饰键
@@ -73,6 +75,7 @@ const DagFlow = forwardRef<GraphViewHandle, DagFlowProps>(function DagFlow(props
     maxZoom = 2,
     defaultViewport,
     fitView = false,
+    autoLayout = true,
     fitViewOptions,
     // 交互
     onNodeClick,
@@ -107,6 +110,7 @@ const DagFlow = forwardRef<GraphViewHandle, DagFlowProps>(function DagFlow(props
         minZoom={minZoom}
         maxZoom={maxZoom}
         fitView={fitView}
+        autoLayout={autoLayout}
         fitViewOptions={fitViewOptions}
         nodesSelectable={nodesSelectable}
         nodesDraggable={nodesDraggable}
@@ -133,6 +137,7 @@ const DagFlow = forwardRef<GraphViewHandle, DagFlowProps>(function DagFlow(props
           minZoom={minZoom}
           maxZoom={maxZoom}
           fitView={fitView}
+          autoLayout={autoLayout}
           fitViewOptions={fitViewOptions}
           zoomOnScroll={zoomOnScroll}
           zoomModifier={zoomModifier}
@@ -150,7 +155,10 @@ const DagFlow = forwardRef<GraphViewHandle, DagFlowProps>(function DagFlow(props
           nodeTypes={nodeTypes}
           layoutEngine={layoutEngine}
         />
-        <GraphView ref={ref}>{children}</GraphView>
+        <GraphView ref={ref}>
+          <AutoLayout engine={layoutEngine} />
+          {children}
+        </GraphView>
       </Wrapper>
     </div>
   );

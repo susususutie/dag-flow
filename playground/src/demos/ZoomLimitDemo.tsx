@@ -15,7 +15,7 @@ export default function ZoomLimitDemo() {
           <input
             type="range"
             min={0.1}
-            max={4}
+            max={maxZoom}
             step={0.1}
             value={minZoom}
             onChange={(e) => setMinZoom(Number(e.target.value))}
@@ -26,7 +26,7 @@ export default function ZoomLimitDemo() {
           maxZoom
           <input
             type="range"
-            min={0.1}
+            min={minZoom}
             max={4}
             step={0.1}
             value={maxZoom}

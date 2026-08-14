@@ -1,6 +1,5 @@
-import { NodeToolbar, Position, useDAGInstance, useNodesInitialized } from "dag-flow";
-import { useEffect, useRef } from "react";
-import type { DAGData, DAGNode, FlowModel, LayoutEngine } from "dag-flow";
+import { NodeToolbar, Position } from "dag-flow";
+import type { DAGNode, FlowModel } from "dag-flow";
 
 /** 状态节点徽标色板 */
 export const STATUS_COLORS: Record<string, string> = {
@@ -48,41 +47,6 @@ export function StatusNode(props: StatusNodeProps) {
       </div>
     </>
   );
-}
-
-export function LayoutRunner({
-  engine,
-  nodes,
-  setDAG,
-}: {
-  engine?: LayoutEngine;
-  nodes: DAGNode[];
-  setDAG: (value: DAGData) => void;
-}) {
-  const instance = useDAGInstance();
-  const initialized = useNodesInitialized();
-  const pendingFitNodes = useRef<DAGNode[] | null>(null);
-
-  useEffect(() => {
-    if (!initialized) return;
-    let active = true;
-    void instance.layout({ engine }).then((nextDAG) => {
-      if (!active) return;
-      pendingFitNodes.current = nextDAG.nodes;
-      setDAG(nextDAG);
-    });
-    return () => {
-      active = false;
-    };
-  }, [engine, initialized, instance, setDAG]);
-
-  useEffect(() => {
-    if (pendingFitNodes.current !== nodes) return;
-    pendingFitNodes.current = null;
-    instance.fitView({ padding: 40 });
-  }, [instance, nodes]);
-
-  return null;
 }
 
 /** 基础拓扑：入口 → 三路并行 → 汇合 → 串行收尾 */

@@ -36,6 +36,16 @@ describe("canvasReducer 坐标化 state", () => {
     expect(s.nodeTypes).toBe(nodeTypes);
   });
 
+  it("关闭自动布局时初始坐标立即可用", () => {
+    const s = syncCanvasProps(
+      stateWith({ autoLayout: true, layoutReady: false, nodeMap: createNodeMap([node("a")]) }),
+      { autoLayout: false },
+      false,
+    );
+    expect(s.autoLayout).toBe(false);
+    expect(s.layoutReady).toBe(true);
+  });
+
   it("syncCanvasProps 忽略内部变更的等价受控回写", () => {
     const data = { label: "a" };
     const s = stateWith({
@@ -78,6 +88,32 @@ describe("canvasReducer 坐标化 state", () => {
     });
     expect(s.nodeMap.get("a")?.position).toEqual({ x: 5, y: 9 });
     expect(s.nodeMap.get("a")).not.toBe(original);
+  });
+
+  it("APPLY_LAYOUT 只更新坐标并保持视口与历史", () => {
+    const history = [
+      {
+        flow: ["a"],
+        nodeMap: createNodeMap([node("a", { position: { x: 0, y: 0 } })]),
+        selectedNodes: new Set<string>(),
+      },
+    ];
+    const transform = { x: -462, y: 133, zoom: 2 };
+    const s = canvasReducer(
+      stateWith({
+        flow: ["a"],
+        nodeMap: createNodeMap([node("a", { position: { x: 0, y: 0 } })]),
+        transform,
+        history,
+        layoutReady: false,
+      }),
+      { type: "APPLY_LAYOUT", payload: new Map([["a", { x: 120, y: -20 }]]) },
+    );
+
+    expect(s.nodeMap.get("a")?.position).toEqual({ x: 120, y: -20 });
+    expect(s.transform).toBe(transform);
+    expect(s.history).toBe(history);
+    expect(s.layoutReady).toBe(true);
   });
 
   it("重复点击已选节点时保持选中", () => {

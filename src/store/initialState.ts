@@ -12,6 +12,8 @@ const initialState: StoreState = {
   minZoom: 0.5, // 最小缩放比例，默认 0.5
   maxZoom: 2, // 最大缩放比例，默认 2
   fitView: false, // 是否初始适应内容（React Flow fitView），默认不开启
+  autoLayout: true,
+  layoutReady: false,
   fitViewOptions: { padding: 0, horizontalAlign: "left", verticalAlign: "top" }, // fitView 配置
   zoomOnScroll: true, // 是否在滚动时缩放，默认为 true
   zoomModifier: "none", // 'none' | 'ctrl' | 'meta'：缩放修饰键，默认直接缩放

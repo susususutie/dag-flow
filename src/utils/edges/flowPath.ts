@@ -139,6 +139,8 @@ export function getFlowEdgeRoutes(
     const geometry = createStepGeometry(step, nodeMap, dimensions, direction);
     return geometry ? [geometry] : [];
   });
+  const trunkSecondary =
+    steps.find((step) => !step.parallel)?.centerSecondary ?? steps[0]?.centerSecondary ?? 0;
 
   for (let index = 0; index < steps.length; index++) {
     const step = steps[index];
@@ -163,16 +165,8 @@ export function getFlowEdgeRoutes(
     const exitDivisor = next?.parallel ? 3 : next ? 2 : 1;
     const exitOffset = positiveOffset(exitGap / exitDivisor, entryOffset);
 
-    step.entry = point(
-      direction,
-      primary(direction, step.rawEntry) - entryOffset,
-      step.centerSecondary,
-    );
-    step.exit = point(
-      direction,
-      primary(direction, step.rawExit) + exitOffset,
-      step.centerSecondary,
-    );
+    step.entry = point(direction, primary(direction, step.rawEntry) - entryOffset, trunkSecondary);
+    step.exit = point(direction, primary(direction, step.rawExit) + exitOffset, trunkSecondary);
   }
 
   const routes: FlowEdgeRoute[] = [];

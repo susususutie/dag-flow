@@ -1,10 +1,11 @@
 // @vitest-environment jsdom
-import { act, render } from "@testing-library/react";
+import { act, render, waitFor } from "@testing-library/react";
 import { createRef, useLayoutEffect } from "react";
 import { describe, expect, it, vi } from "vitest";
 import CanvasProvider from "../CanvasProvider.tsx";
 import type { CanvasAction, DAGInstance, LayoutEngine } from "../../types/index.ts";
 import useCanvasDispatch from "../../hooks/useCanvasDispatch.ts";
+import AutoLayout from "../../container/DagFlow/AutoLayout.tsx";
 
 function MeasureNode() {
   const dispatch = useCanvasDispatch();
@@ -14,6 +15,17 @@ function MeasureNode() {
       payload: new Map([["a", { width: 100, height: 40 }]]),
     });
   }, [dispatch]);
+  return null;
+}
+
+function MeasureNodes({ ids }: { ids: string[] }) {
+  const dispatch = useCanvasDispatch();
+  useLayoutEffect(() => {
+    dispatch({
+      type: "SET_NODE_DIMENSIONS",
+      payload: new Map(ids.map((id) => [id, { width: 100, height: 40 }])),
+    });
+  }, [dispatch, ids]);
   return null;
 }
 
@@ -48,6 +60,37 @@ describe("DAGInstance.layout", () => {
       flow: ["a"],
     });
     expect(ref.current?.getNode("a")?.position).toEqual({ x: 0, y: 0 });
+  });
+});
+
+describe("默认自动布局", () => {
+  it("拓扑变化后自动重排且保持视口", async () => {
+    const ref = createRef<DAGInstance>();
+    const ids = ["start", "a", "b", "c", "d", "done"];
+    render(
+      <CanvasProvider
+        ref={ref}
+        defaultNodes={ids.map((id) => ({ id, position: { x: 0, y: 0 } }))}
+        defaultFlow={["start", [["a"], ["b"], ["c"], ["d"]], "done"]}
+      >
+        <MeasureNodes ids={ids} />
+        <AutoLayout />
+      </CanvasProvider>,
+    );
+
+    await waitFor(() => expect(ref.current?.getNode("d")?.position.y).toBe(64));
+
+    act(() => ref.current?.setViewport({ x: -462, y: 133, zoom: 2 }));
+    await act(async () => {
+      await ref.current?.deleteNode("d");
+    });
+
+    await waitFor(() => expect(ref.current?.getNode("a")?.position.y).toBe(-76));
+    expect(ref.current?.getNode("b")?.position.y).toBe(-20);
+    expect(ref.current?.getNode("c")?.position.y).toBe(36);
+    expect(ref.current?.getNode("start")?.position.y).toBe(-20);
+    expect(ref.current?.getNode("done")?.position.y).toBe(-20);
+    expect(ref.current?.getViewport()).toEqual({ x: -462, y: 133, zoom: 2 });
   });
 });
 

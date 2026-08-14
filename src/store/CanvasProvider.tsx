@@ -34,6 +34,7 @@ const GRAPH_ACTION_TYPES = new Set([
   "CLEAR_SELECTION",
   "SET_FLOW",
   "SET_DAG",
+  "APPLY_LAYOUT",
   "UPDATE_NODE_POSITION",
   "UNDO",
   "REDO",
@@ -51,6 +52,13 @@ function buildNodeChanges(
       .filter((action) => action.type === "UPDATE_NODE_POSITION")
       .map((action) => [action.payload.id, action.payload]),
   );
+  actions
+    .filter((action) => action.type === "APPLY_LAYOUT")
+    .forEach((action) => {
+      action.payload.forEach((position, id) => {
+        positionChanges.set(id, { id, position, dragging: false });
+      });
+    });
 
   previousState.nodeMap.forEach((_node, id) => {
     if (!nextState.nodeMap.has(id)) changes.push({ type: "remove", id });
@@ -496,6 +504,8 @@ const CanvasProvider = forwardRef<DAGInstance, CanvasProviderPropsWithChildren>(
       state.minZoom,
       state.maxZoom,
       state.fitView,
+      state.autoLayout,
+      state.layoutReady,
       state.fitViewOptions,
       state.zoomOnScroll,
       state.zoomModifier,

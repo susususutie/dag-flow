@@ -58,6 +58,8 @@ function replaceDAG(
     nodeMap === state.nodeMap
       ? state.nodeDimensions
       : reconcileNodeDimensions(state.nodeMap, nodeMap, state.nodeDimensions);
+  const layoutReady =
+    state.autoLayout && flow !== state.flow && nodeMap.size > 0 ? false : state.layoutReady;
 
   if (source === "sync") {
     return {
@@ -66,6 +68,7 @@ function replaceDAG(
       flow,
       nodeMap,
       nodeDimensions,
+      layoutReady,
       selectedNodes,
       history: [],
       future: [],
@@ -78,6 +81,7 @@ function replaceDAG(
     flow,
     nodeMap,
     nodeDimensions,
+    layoutReady,
     selectedNodes,
     history: pushSnapshot(state.history, snapshotOf(state)),
     future: [],
@@ -139,12 +143,25 @@ export default function canvasReducer(state: StoreState, action: CanvasAction): 
         ...state,
         dirty: true,
         flow,
+        layoutReady: !state.autoLayout || state.nodeMap.size === 0,
         history: pushSnapshot(state.history, snapshotOf(state)),
         future: [],
       };
     }
     case "SET_NODE_MAP": {
       return replaceDAG(state, { flow: state.flow, nodeMap: action.payload }, "edit");
+    }
+    case "APPLY_LAYOUT": {
+      let nodeMap = state.nodeMap;
+      action.payload.forEach((position, id) => {
+        const node = state.nodeMap.get(id);
+        if (!node) return;
+        if (node.position?.x === position.x && node.position?.y === position.y) return;
+        if (nodeMap === state.nodeMap) nodeMap = new Map(state.nodeMap);
+        nodeMap.set(id, { ...node, position: { ...position } });
+      });
+      if (nodeMap === state.nodeMap && state.layoutReady) return state;
+      return { ...state, nodeMap, layoutReady: true };
     }
     case "SET_DAG": {
       return replaceDAG(state, action.payload, "edit");
@@ -175,6 +192,7 @@ export default function canvasReducer(state: StoreState, action: CanvasAction): 
         nodeMap,
         nodeDimensions,
         selectedNodes,
+        layoutReady: !state.autoLayout || nodeMap.size === 0,
         history: pushSnapshot(state.history, snapshotOf(state)),
         future: [],
       };
@@ -266,6 +284,7 @@ export default function canvasReducer(state: StoreState, action: CanvasAction): 
         nodeMap: entry.nodeMap,
         nodeDimensions: reconcileNodeDimensions(state.nodeMap, entry.nodeMap, state.nodeDimensions),
         selectedNodes: entry.selectedNodes,
+        layoutReady: !state.autoLayout || entry.nodeMap.size === 0,
       };
     }
     case "REDO": {
@@ -282,6 +301,7 @@ export default function canvasReducer(state: StoreState, action: CanvasAction): 
         nodeMap: entry.nodeMap,
         nodeDimensions: reconcileNodeDimensions(state.nodeMap, entry.nodeMap, state.nodeDimensions),
         selectedNodes: entry.selectedNodes,
+        layoutReady: !state.autoLayout || entry.nodeMap.size === 0,
       };
     }
     case "CLEAR_HISTORY": {

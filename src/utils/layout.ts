@@ -1,12 +1,14 @@
-import type { FlowModel, LayoutEngine, XYPosition } from "../types/index.ts";
+import type { FlowDirection, FlowModel, LayoutEngine, XYPosition } from "../types/index.ts";
 import type { FlowPath } from "../types/index.ts";
 import Flow from "./Flow.ts";
 
-export interface LayoutOptions {
-  /** 单个水平连线段长度；并行边界会按拓扑占用多个段 */
+export interface DefaultLayoutOptions {
+  /** 单个主轴连线段长度；并行边界会按拓扑占用多个段 */
   hGap?: number;
-  /** 并行路径垂直间距（同 vGap） */
+  /** 并行路径在交叉轴上的间距 */
   vGap?: number;
+  /** 主轴方向，horizontal 从左到右，vertical 从上到下 */
+  direction?: FlowDirection;
   /** 未测量节点默认宽度 */
   defaultNodeWidth?: number;
   /** 未测量节点默认高度 */
@@ -22,28 +24,43 @@ interface Dim {
  * 自动布局引擎：将 flow 拓扑换算为节点坐标（仅输出未拖动节点）。
  *
  * 布局语义（与既有可视化一致）：
- * - hGap 表示一个可见连线段：并行组入口、出口各占一段
+ * - hGap 表示主轴上的一个可见连线段：并行组入口、出口各占一段
  * - 连续并行组之间额外保留一段主干，因此节点间共三个 hGap
- * - 串行步骤单行；并行组路径垂直堆叠（组内 path 横向串联）
- * - 每列垂直聚中（centerY 沿链传递），并行组整体居中于前列中心
+ * - horizontal 时路径从左到右、分支上下堆叠；vertical 时路径从上到下、分支左右堆叠
+ * - 主干的交叉轴坐标固定为 0，分支增删只会向主干两侧扩展
  * - pinned（已拖动/用户给 position）节点焊死：不输出、不参与计算，
- *   但占用所在列的宽度与 x 锚（后续列自动避让）
+ *   但占用所在步骤的主轴范围，且其中心定义主干的交叉轴锚点
  */
 export function computeLayout(
   flow: FlowModel,
   dims: Map<string, Dim>,
   pinned: Map<string, XYPosition>,
-  opts: LayoutOptions,
+  opts: DefaultLayoutOptions,
 ): Map<string, XYPosition> {
-  const { hGap = 160, vGap = 16, defaultNodeWidth = 150, defaultNodeHeight = 40 } = opts;
+  const {
+    hGap = 160,
+    vGap = 16,
+    direction = "horizontal",
+    defaultNodeWidth = 150,
+    defaultNodeHeight = 40,
+  } = opts;
   const normalized = new Flow(Array.isArray(flow) ? flow : []).toArray();
 
   const result = new Map<string, XYPosition>();
   const dim = (id: string): Dim =>
     dims.get(id) ?? { width: defaultNodeWidth, height: defaultNodeHeight };
 
-  let previousExitX: number | null = null;
-  let centerY = 0;
+  const mainSize = (size: Dim) => (direction === "horizontal" ? size.width : size.height);
+  const crossSize = (size: Dim) => (direction === "horizontal" ? size.height : size.width);
+  const mainPosition = (position: XYPosition) =>
+    direction === "horizontal" ? position.x : position.y;
+  const crossPosition = (position: XYPosition) =>
+    direction === "horizontal" ? position.y : position.x;
+  const position = (main: number, cross: number): XYPosition =>
+    direction === "horizontal" ? { x: main, y: cross } : { x: cross, y: main };
+
+  let previousExit: number | null = null;
+  let centerCross = 0;
 
   for (const step of normalized) {
     const isParallel = typeof step !== "string";
@@ -51,67 +68,66 @@ export function computeLayout(
 
     const pinnedInStep = paths.flat().filter((id) => pinned.has(id));
 
-    // 列中心沿链传递：有 pinned 时跟随 pinned 中心（本列即生效）
+    // 有 pinned 时由 pinned 中心定义主干；否则固定为 0，不随分支数量变化。
     if (pinnedInStep.length > 0) {
       const pinsCenter = pinnedInStep.reduce(
-        (sum, id) => sum + pinned.get(id)!.y + dim(id).height / 2,
+        (sum, id) => sum + crossPosition(pinned.get(id)!) + crossSize(dim(id)) / 2,
         0,
       );
-      centerY = pinsCenter / pinnedInStep.length;
+      centerCross = pinsCenter / pinnedInStep.length;
     }
 
-    // 行几何：每条路径一行（横向串联），行宽 = 路径内节点宽和 + hGap
+    // 每条并行路径沿主轴串联，路径间沿交叉轴堆叠。
     const rowGeom = paths.map((path) => {
-      let width = 0;
-      let maxHeight = 0;
+      let mainLength = 0;
+      let maxCrossSize = 0;
       for (const id of path) {
         const d = dim(id);
-        width += d.width + (width === 0 ? 0 : hGap);
-        maxHeight = Math.max(maxHeight, d.height);
+        mainLength += mainSize(d) + (mainLength === 0 ? 0 : hGap);
+        maxCrossSize = Math.max(maxCrossSize, crossSize(d));
       }
-      return { path, width, height: maxHeight };
+      return { path, mainLength, crossSize: maxCrossSize };
     });
 
     // 并行组节点前预留分叉段；前一步的 exit 已包含其汇合段。
-    const defaultStepX =
-      previousExitX === null
+    const defaultStepMain =
+      previousExit === null
         ? isParallel
           ? hGap
           : 0
-        : previousExitX + (isParallel ? 2 * hGap : hGap);
+        : previousExit + (isParallel ? 2 * hGap : hGap);
 
-    // 列 x：若存在 pinned 节点则以 pinned 的 x 为列锚，否则按拓扑段递进
-    const pinnedMaxRight = pinnedInStep.reduce(
-      (acc, id) => Math.max(acc, pinned.get(id)!.x + dim(id).width),
+    // 若存在 pinned 节点则以其主轴坐标为步骤锚，否则按拓扑段递进。
+    const pinnedMaxEnd = pinnedInStep.reduce(
+      (acc, id) => Math.max(acc, mainPosition(pinned.get(id)!) + mainSize(dim(id))),
       -Infinity,
     );
-    const stepX = pinnedInStep.length > 0 ? pinned.get(pinnedInStep[0])!.x : defaultStepX;
-    const rowWidth = rowGeom.reduce((acc, row) => Math.max(acc, row.width), 0);
+    const stepMain =
+      pinnedInStep.length > 0 ? mainPosition(pinned.get(pinnedInStep[0])!) : defaultStepMain;
+    const stepMainLength = rowGeom.reduce((acc, row) => Math.max(acc, row.mainLength), 0);
 
-    // 列高（并行组垂直堆叠）
-    const groupHeight =
-      rowGeom.reduce((acc, row) => acc + row.height, 0) + (paths.length - 1) * vGap;
-    const groupTop = centerY - groupHeight / 2;
+    const groupCrossSize =
+      rowGeom.reduce((acc, row) => acc + row.crossSize, 0) + (paths.length - 1) * vGap;
+    const groupCrossStart = centerCross - groupCrossSize / 2;
 
-    let rowY = groupTop;
+    let rowCross = groupCrossStart;
     for (const row of rowGeom) {
-      // 行内节点横向串联
-      let nodeX = stepX;
+      let nodeMain = stepMain;
       for (const id of row.path) {
         const d = dim(id);
         if (!pinned.has(id)) {
-          result.set(id, { x: nodeX, y: rowY + (row.height - d.height) / 2 });
+          result.set(id, position(nodeMain, rowCross + (row.crossSize - crossSize(d)) / 2));
         }
-        nodeX += d.width + hGap;
+        nodeMain += mainSize(d) + hGap;
       }
       if (row.path.length > 0) {
-        rowY += row.height + vGap;
+        rowCross += row.crossSize + vGap;
       }
     }
 
     // 并行组出口为最长路径右侧的汇合总线，短路径由边网络延伸至此。
-    const rightEdge = Math.max(pinnedMaxRight, stepX + rowWidth);
-    previousExitX = rightEdge + (isParallel ? hGap : 0);
+    const stepEnd = Math.max(pinnedMaxEnd, stepMain + stepMainLength);
+    previousExit = stepEnd + (isParallel ? hGap : 0);
   }
 
   return result;
@@ -140,7 +156,7 @@ export function getNodesBounds(
 }
 
 /** 创建默认列式 DAG 布局引擎，算法配置由闭包持有 */
-export function createDefaultLayoutEngine(options: LayoutOptions = {}): LayoutEngine {
+export function createDefaultLayoutEngine(options: DefaultLayoutOptions = {}): LayoutEngine {
   return ({ flow, dimensions }) => ({
     positions: computeLayout(flow, dimensions, new Map(), options),
   });

@@ -50,7 +50,7 @@ const GraphView = forwardRef<GraphViewHandle, { children?: ReactNode }>(function
   const instance = useContext(CanvasInstanceContext);
   const dag = useContext(DAGInstanceContext);
   const dispatch = useCanvasDispatch();
-  const { uid, nodeMap, nodeDimensions, minZoom, maxZoom, fitView, fitViewOptions } =
+  const { uid, nodeMap, nodeDimensions, minZoom, maxZoom, fitView, fitViewOptions, layoutReady } =
     useCanvasState();
   const rendererRef = useRef<HTMLDivElement>(null);
   const positions = useMemo(
@@ -115,10 +115,11 @@ const GraphView = forwardRef<GraphViewHandle, { children?: ReactNode }>(function
   );
   const didInitialFitView = useRef(false);
   useLayoutEffect(() => {
-    if (!fitView || didInitialFitView.current || !bounds || !nodesInitialized) return;
+    if (!fitView || didInitialFitView.current || !bounds || !nodesInitialized || !layoutReady)
+      return;
     didInitialFitView.current = true;
     fitCurrentView(fitViewOptions);
-  }, [bounds, fitCurrentView, fitView, fitViewOptions, nodesInitialized]);
+  }, [bounds, fitCurrentView, fitView, fitViewOptions, layoutReady, nodesInitialized]);
 
   const viewApi = useMemo<ViewApi>(
     () => ({

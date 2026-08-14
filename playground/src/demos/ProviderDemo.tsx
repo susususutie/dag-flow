@@ -1,8 +1,8 @@
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { DagFlow, DagFlowProvider, useDAGState } from "dag-flow";
 import { BASIC_FLOW, BASIC_NODES, nodeTypes } from "./shared.tsx";
 
-/** DagFlowProvider 受控：useDAGState 提供 nodes/flow 与可直接传入 DagFlow 的变更回调 */
+/** 外层 Provider 共享 store，DagFlow 通过 useDAGState 提供的 nodes/flow 受控 */
 export default function ProviderDemo() {
   return (
     <DagFlowProvider>
@@ -17,13 +17,14 @@ function Scene() {
     flow: BASIC_FLOW,
   });
   const [logs, setLogs] = useState<string[]>([]);
+  const nextNodeNumber = useRef(1);
 
   const record = useCallback((message: string) => {
     setLogs((prev) => [message, ...prev].slice(0, 6));
   }, []);
 
   const addNode = useCallback(() => {
-    const id = `extra-${Date.now() % 10000}`;
+    const id = `extra-${nextNodeNumber.current++}`;
     setDAG((current) => ({
       nodes: [...current.nodes, { id, position: { x: 1550, y: 56 }, data: { label: id } }],
       flow: [...current.flow, id],

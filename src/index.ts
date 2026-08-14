@@ -36,6 +36,7 @@ export {
   defaultLayoutEngine,
   getNodesBounds,
 } from "./utils/layout.ts";
+export type { DefaultLayoutOptions } from "./utils/layout.ts";
 export { default as computeFitView } from "./utils/geometry.ts";
 export { getSmoothStepPath, getBezierPath, getStraightPath } from "./utils/edges/paths.ts";
 export { palette, statusColorMap, isValidColor } from "./utils/color.ts";

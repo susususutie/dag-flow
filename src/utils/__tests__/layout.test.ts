@@ -83,6 +83,53 @@ describe("computeLayout 并行", () => {
     expect(out.get("a")!.y + 52 / 2).toBe(0);
     expect(out.get("c")!.y + 28 / 2).toBe(0);
   });
+
+  it("增减并行分支不会改变水平主干线", () => {
+    const twoBranches = computeLayout(
+      ["a", [["p1"], ["p2"]], "c"] as FlowModel,
+      DIMS,
+      new Map(),
+      OPTS,
+    );
+    const fourBranches = computeLayout(
+      ["a", [["p1"], ["p2"], ["p3"], ["b1"]], "c"] as FlowModel,
+      DIMS,
+      new Map(),
+      OPTS,
+    );
+
+    expect(twoBranches.get("a")!.y + 20).toBe(0);
+    expect(twoBranches.get("c")!.y + 20).toBe(0);
+    expect(fourBranches.get("a")!.y + 20).toBe(0);
+    expect(fourBranches.get("c")!.y + 20).toBe(0);
+    expect(twoBranches.get("p1")!.y).toBe(-48);
+    expect(fourBranches.get("p1")!.y).toBe(-104);
+  });
+});
+
+describe("computeLayout 垂直布局", () => {
+  it("增减并行分支不会改变垂直主干线", () => {
+    const options = { ...OPTS, direction: "vertical" as const };
+    const twoBranches = computeLayout(
+      ["a", [["p1"], ["p2"]], "c"] as FlowModel,
+      DIMS,
+      new Map(),
+      options,
+    );
+    const fourBranches = computeLayout(
+      ["a", [["p1"], ["p2"], ["p3"], ["b1"]], "c"] as FlowModel,
+      DIMS,
+      new Map(),
+      options,
+    );
+
+    expect(twoBranches.get("a")).toEqual({ x: -50, y: 0 });
+    expect(twoBranches.get("c")).toEqual({ x: -50, y: 720 });
+    expect(fourBranches.get("a")).toEqual({ x: -50, y: 0 });
+    expect(fourBranches.get("c")).toEqual({ x: -50, y: 720 });
+    expect(twoBranches.get("p1")?.x).toBe(-108);
+    expect(fourBranches.get("p1")?.x).toBe(-224);
+  });
 });
 
 describe("computeLayout pinned 焊死与避让", () => {

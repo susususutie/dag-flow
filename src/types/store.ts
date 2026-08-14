@@ -17,6 +17,10 @@ export interface StoreState {
   minZoom: number;
   maxZoom: number;
   fitView: boolean;
+  /** 是否在初始测量和拓扑变化后自动执行布局 */
+  autoLayout: boolean;
+  /** 自动布局结果是否已应用；初始 fitView 需等待该状态 */
+  layoutReady: boolean;
   fitViewOptions: Required<Pick<FitViewOptions, "padding" | "horizontalAlign" | "verticalAlign">> &
     Omit<FitViewOptions, "padding" | "horizontalAlign" | "verticalAlign">;
   zoomOnScroll: boolean;
@@ -62,6 +66,7 @@ export type CanvasAction =
   | { type: "PAN"; payload: { x: number; y: number } }
   | { type: "SET_FLOW"; payload: FlowModel }
   | { type: "SET_NODE_MAP"; payload: Map<string, DAGNode> }
+  | { type: "APPLY_LAYOUT"; payload: Map<string, XYPosition> }
   | { type: "SET_DAG"; payload: { flow: FlowModel; nodeMap: Map<string, DAGNode> } }
   | { type: "SYNC_DAG"; payload: { flow: FlowModel; nodeMap: Map<string, DAGNode> } }
   | { type: "DELETE_NODE"; payload: { ids: string[] } }
@@ -112,6 +117,8 @@ export interface CanvasProviderProps {
   minZoom?: number;
   maxZoom?: number;
   fitView?: boolean;
+  /** 初始测量和拓扑变化后自动布局，默认 true */
+  autoLayout?: boolean;
   fitViewOptions?: FitViewOptions;
   zoomOnScroll?: boolean;
   zoomModifier?: Modifier;

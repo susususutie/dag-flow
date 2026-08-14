@@ -2,7 +2,7 @@ import { useState } from "react";
 import { DagFlow, DagFlowProvider, useDAGInstance } from "dag-flow";
 import { BASIC_FLOW, BASIC_NODES, nodeTypes } from "./shared.tsx";
 
-/** fitView / fitViewOptions：初始适配 + 适配参数实时可调 + 手动重新适配 */
+/** fitView / fitViewOptions：首次适配 + 参数配置 + 按当前参数手动重新适配 */
 export default function FitViewDemo() {
   const [padding, setPadding] = useState(40);
   const [horizontalAlign, setHorizontalAlign] = useState<"left" | "center" | "right">("center");
@@ -14,7 +14,7 @@ export default function FitViewDemo() {
       <div className="demo-scene">
         <div className="demo-controls">
           <label>
-            启用 fitView
+            启用首次 fitView
             <input
               type="checkbox"
               checked={fitEnabled}
@@ -54,15 +54,22 @@ export default function FitViewDemo() {
               <option value="bottom">bottom</option>
             </select>
           </label>
-          <RefitButton />
+          <RefitButton
+            padding={padding}
+            horizontalAlign={horizontalAlign}
+            verticalAlign={verticalAlign}
+          />
         </div>
         <div className="demo-canvas">
           <DagFlow
             defaultNodes={BASIC_NODES}
             defaultFlow={BASIC_FLOW}
             nodeTypes={nodeTypes}
+            minZoom={1.5}
+            maxZoom={2}
             fitView={fitEnabled}
             fitViewOptions={{ padding, horizontalAlign, verticalAlign }}
+            style={{ height: 220 }}
           />
         </div>
       </div>
@@ -70,7 +77,19 @@ export default function FitViewDemo() {
   );
 }
 
-function RefitButton() {
+function RefitButton({
+  padding,
+  horizontalAlign,
+  verticalAlign,
+}: {
+  padding: number;
+  horizontalAlign: "left" | "center" | "right";
+  verticalAlign: "top" | "center" | "bottom";
+}) {
   const dag = useDAGInstance();
-  return <button onClick={() => dag.fitView()}>重新适配</button>;
+  return (
+    <button onClick={() => dag.fitView({ padding, horizontalAlign, verticalAlign })}>
+      按当前参数适配
+    </button>
+  );
 }
