@@ -136,12 +136,12 @@ export const BASIC_FLOW: FlowModel = [
   "archive",
 ];
 
-/** 并行密集拓扑：五路并行，其中两路含组内串行 */
+/** 并行密集拓扑：四路并行，其中两路含组内串行 */
 export const PARALLEL_NODES: DAGNode[] = [
   {
     id: "p1",
     // type: "status",
-    position: { x: 0, y: 112 },
+    position: { x: 0, y: 84 },
     data: { label: "步骤 1", status: "processing" },
   },
   {
@@ -183,7 +183,7 @@ export const PARALLEL_NODES: DAGNode[] = [
   {
     id: "done",
     type: "status",
-    position: { x: 930, y: 112 },
+    position: { x: 930, y: 84 },
     data: { label: "完成", status: "success" },
   },
 ];

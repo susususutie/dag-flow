@@ -162,7 +162,7 @@ export function getStraightPath({
 
 // ---------- smoothstep ----------
 
-interface Point {
+export interface Point {
   x: number;
   y: number;
 }
@@ -337,6 +337,22 @@ function getBend(a: Point, b: Point, c: Point, size: number): string {
   return `L ${x},${y + bendSize * yDir}Q ${x},${y} ${x + bendSize * xDir},${y}`;
 }
 
+/** 将一组明确的正交折点转换为带圆角的 SVG path。 */
+export function getRoundedPath(input: Point[], borderRadius = 5): string {
+  const points = input.filter(
+    (point, index) =>
+      index === 0 || point.x !== input[index - 1].x || point.y !== input[index - 1].y,
+  );
+  if (points.length === 0) return "";
+  if (points.length === 1) return `M${points[0].x} ${points[0].y}`;
+
+  let path = `M${points[0].x} ${points[0].y}`;
+  for (let i = 1; i < points.length - 1; i++) {
+    path += getBend(points[i - 1], points[i], points[i + 1], borderRadius);
+  }
+  return `${path}L${points[points.length - 1].x} ${points[points.length - 1].y}`;
+}
+
 export function getSmoothStepPath({
   sourceX,
   sourceY,
@@ -359,10 +375,6 @@ export function getSmoothStepPath({
     offset,
     stepPosition,
   );
-  let path = `M${points[0].x} ${points[0].y}`;
-  for (let i = 1; i < points.length - 1; i++) {
-    path += getBend(points[i - 1], points[i], points[i + 1], borderRadius);
-  }
-  path += `L${points[points.length - 1].x} ${points[points.length - 1].y}`;
+  const path = getRoundedPath(points, borderRadius);
   return [path, labelX, labelY, offsetX, offsetY];
 }

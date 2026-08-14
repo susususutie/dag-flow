@@ -1,19 +1,24 @@
-import { DagFlow, DagFlowProvider } from "dag-flow";
-import { PARALLEL_FLOW, PARALLEL_NODES, nodeTypes } from "./shared.tsx";
+import { DagFlow, useDAGState } from "dag-flow";
+import { LayoutRunner, PARALLEL_FLOW, PARALLEL_NODES, nodeTypes } from "./shared.tsx";
 
-/** 并行拓扑：五路并行分支，含组内串行路径，验证并行组布局与连线汇聚 */
+/** 并行拓扑：四路并行分支，含组内串行路径，验证并行组布局与连线汇聚 */
 export default function BasicParallelDemo() {
+  const { nodes, flow, setDAG, onNodesChange, onFlowChange } = useDAGState({
+    nodes: PARALLEL_NODES,
+    flow: PARALLEL_FLOW,
+  });
+
   return (
-    <DagFlowProvider>
-      <div className="demo-canvas">
-        <DagFlow
-          defaultNodes={PARALLEL_NODES}
-          defaultFlow={PARALLEL_FLOW}
-          nodeTypes={nodeTypes}
-          fitView
-          fitViewOptions={{ padding: 40 }}
-        />
-      </div>
-    </DagFlowProvider>
+    <div className="demo-canvas">
+      <DagFlow
+        nodes={nodes}
+        flow={flow}
+        nodeTypes={nodeTypes}
+        onNodesChange={onNodesChange}
+        onFlowChange={onFlowChange}
+      >
+        <LayoutRunner nodes={nodes} setDAG={setDAG} />
+      </DagFlow>
+    </div>
   );
 }

@@ -3,7 +3,7 @@ import type { FlowPath } from "../types/index.ts";
 import Flow from "./Flow.ts";
 
 export interface LayoutOptions {
-  /** 相邻节点水平间距（同 hGap） */
+  /** 单个水平连线段长度；并行边界会按拓扑占用多个段 */
   hGap?: number;
   /** 并行路径垂直间距（同 vGap） */
   vGap?: number;
@@ -22,7 +22,8 @@ interface Dim {
  * 自动布局引擎：将 flow 拓扑换算为节点坐标（仅输出未拖动节点）。
  *
  * 布局语义（与既有可视化一致）：
- * - 顶层步骤按列递进（相邻列 x = 前列最右 + hGap）
+ * - hGap 表示一个可见连线段：并行组入口、出口各占一段
+ * - 连续并行组之间额外保留一段主干，因此节点间共三个 hGap
  * - 串行步骤单行；并行组路径垂直堆叠（组内 path 横向串联）
  * - 每列垂直聚中（centerY 沿链传递），并行组整体居中于前列中心
  * - pinned（已拖动/用户给 position）节点焊死：不输出、不参与计算，
@@ -41,10 +42,11 @@ export function computeLayout(
   const dim = (id: string): Dim =>
     dims.get(id) ?? { width: defaultNodeWidth, height: defaultNodeHeight };
 
-  let colX = 0;
+  let previousExitX: number | null = null;
   let centerY = 0;
 
   for (const step of normalized) {
+    const isParallel = typeof step !== "string";
     const paths: FlowPath[] = typeof step === "string" ? [[step]] : step;
 
     const pinnedInStep = paths.flat().filter((id) => pinned.has(id));
@@ -70,12 +72,20 @@ export function computeLayout(
       return { path, width, height: maxHeight };
     });
 
-    // 列 x：若存在 pinned 节点则以 pinned 的 x 为列锚，否则接在前列最右
+    // 并行组节点前预留分叉段；前一步的 exit 已包含其汇合段。
+    const defaultStepX =
+      previousExitX === null
+        ? isParallel
+          ? hGap
+          : 0
+        : previousExitX + (isParallel ? 2 * hGap : hGap);
+
+    // 列 x：若存在 pinned 节点则以 pinned 的 x 为列锚，否则按拓扑段递进
     const pinnedMaxRight = pinnedInStep.reduce(
       (acc, id) => Math.max(acc, pinned.get(id)!.x + dim(id).width),
-      colX,
+      -Infinity,
     );
-    const stepX = pinnedInStep.length > 0 ? pinned.get(pinnedInStep[0])!.x : colX;
+    const stepX = pinnedInStep.length > 0 ? pinned.get(pinnedInStep[0])!.x : defaultStepX;
     const rowWidth = rowGeom.reduce((acc, row) => Math.max(acc, row.width), 0);
 
     // 列高（并行组垂直堆叠）
@@ -99,9 +109,9 @@ export function computeLayout(
       }
     }
 
-    // 下一列锚点
+    // 并行组出口为最长路径右侧的汇合总线，短路径由边网络延伸至此。
     const rightEdge = Math.max(pinnedMaxRight, stepX + rowWidth);
-    colX = rightEdge + hGap;
+    previousExitX = rightEdge + (isParallel ? hGap : 0);
   }
 
   return result;

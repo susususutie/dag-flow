@@ -35,20 +35,53 @@ describe("computeLayout 并行", () => {
     // a 在列 0，中心 y=0
     expect(out.get("a")).toEqual({ x: 0, y: -20 });
     // 并行组高度 40*3+16*2=152，top = -76
-    expect(out.get("p1")).toEqual({ x: 260, y: -76 });
-    expect(out.get("p2")).toEqual({ x: 260, y: -20 });
-    expect(out.get("p3")).toEqual({ x: 260, y: 36 });
+    expect(out.get("p1")).toEqual({ x: 420, y: -76 });
+    expect(out.get("p2")).toEqual({ x: 420, y: -20 });
+    expect(out.get("p3")).toEqual({ x: 420, y: 36 });
     // c 与并行组中心对齐
-    expect(out.get("c")).toEqual({ x: 520, y: -20 });
+    expect(out.get("c")).toEqual({ x: 840, y: -20 });
   });
 
   it("组内路径横向串联", () => {
     const out = computeLayout([[["b1", "b2"], ["p2"]]] as FlowModel, DIMS, new Map(), OPTS);
     const b1 = out.get("b1")!;
     const b2 = out.get("b2")!;
-    expect(b1.x).toBe(0);
+    expect(b1.x).toBe(OPTS.hGap);
     expect(b2.x).toBe(b1.x + 100 + OPTS.hGap);
     expect(b1.y).toBe(b2.y);
+  });
+
+  it("连续并行组为汇合总线、主干和分叉总线各保留一段", () => {
+    const out = computeLayout(
+      [
+        [["p1"], ["p2"]],
+        [["b1"], ["b2"]],
+      ] as FlowModel,
+      DIMS,
+      new Map(),
+      OPTS,
+    );
+
+    expect(out.get("p1")?.x).toBe(160);
+    expect(out.get("b1")?.x).toBe(740);
+    expect(out.get("b1")!.x - (out.get("p1")!.x + 100)).toBe(OPTS.hGap * 3);
+  });
+
+  it("不同高度的串行节点与偶数分支并行组按中心对齐", () => {
+    const dimensions = new Map(DIMS);
+    dimensions.set("a", { width: 100, height: 52 });
+    dimensions.set("c", { width: 100, height: 28 });
+    const out = computeLayout(
+      ["a", [["p1"], ["p2"], ["p3"], ["b1"]], "c"] as FlowModel,
+      dimensions,
+      new Map(),
+      OPTS,
+    );
+
+    expect(out.get("a")?.y).toBe(-26);
+    expect(out.get("c")?.y).toBe(-14);
+    expect(out.get("a")!.y + 52 / 2).toBe(0);
+    expect(out.get("c")!.y + 28 / 2).toBe(0);
   });
 });
 
@@ -74,8 +107,8 @@ describe("computeLayout pinned 焊死与避让", () => {
     expect(out.has("p2")).toBe(false);
     // p1/p3 仍在组内排布（取 pinned.x=260 为列锚）
     expect(out.get("p1")!.x).toBe(260);
-    // 组列右缘 = p2 右缘 360 → c.x = 520
-    expect(out.get("c")!.x).toBe(520);
+    // 组列右缘后保留汇合总线，再以一段间距放置 c
+    expect(out.get("c")!.x).toBe(680);
     // 组列中心跟随 pinned 中心 y（pinned 中心 = 5 + 20 = 25）
     expect(out.get("p1")!.y).toBe(25 - 152 / 2);
   });

@@ -113,6 +113,8 @@ const engine = createDefaultLayoutEngine({ hGap: 160, vGap: 16 });
 <DagFlow layoutEngine={engine} />;
 ```
 
+默认布局把 `hGap` 解释为一段连线的长度。并行组会在节点前后分别保留分叉、汇合段；连续并行组之间还会保留一段主干。所有分支从同一点展开，并在最长路径之后汇合，较短路径会延伸到该汇合点。
+
 自定义布局引擎接收 `{ nodes, flow, dimensions }`，返回 `{ positions }`，可同步或异步执行。
 
 ## NodeToolbar
