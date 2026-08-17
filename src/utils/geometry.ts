@@ -5,6 +5,9 @@ interface FitViewParams {
   containerHeight: number;
   contentWidth: number;
   contentHeight: number;
+  /** 内容边界左上角（画布坐标）；缺省按 0 处理 */
+  contentX?: number;
+  contentY?: number;
   padding?: number | { top?: number; right?: number; bottom?: number; left?: number };
   minZoom?: number;
   maxZoom?: number;
@@ -15,12 +18,15 @@ interface FitViewParams {
 /**
  * 计算 fitView 对应的画布 transform（x, y, zoom）。
  * React Flow 语义：缩放内容使其在容器内完整可见并居中；缩放受限而无法完整容纳时可指定溢出方向。
+ * 内容边界可能不从 (0, 0) 开始（如并行分支位于主干上方），需减去原点偏移才能让内容真正居中。
  */
 export default function computeFitView({
   containerWidth,
   containerHeight,
   contentWidth,
   contentHeight,
+  contentX = 0,
+  contentY = 0,
   padding = 0,
   minZoom = 0.1,
   maxZoom = Infinity,
@@ -42,10 +48,12 @@ export default function computeFitView({
   return {
     x:
       resolvedPadding.left +
-      getAlignmentOffset(availWidth, scaledWidth, horizontalAlign, "left", "right"),
+      getAlignmentOffset(availWidth, scaledWidth, horizontalAlign, "left", "right") -
+      contentX * zoom,
     y:
       resolvedPadding.top +
-      getAlignmentOffset(availHeight, scaledHeight, verticalAlign, "top", "bottom"),
+      getAlignmentOffset(availHeight, scaledHeight, verticalAlign, "top", "bottom") -
+      contentY * zoom,
     zoom,
   };
 }

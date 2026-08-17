@@ -80,6 +80,8 @@ const GraphView = forwardRef<GraphViewHandle, { children?: ReactNode }>(function
           containerHeight: rect.height,
           contentWidth: bounds.width,
           contentHeight: bounds.height,
+          contentX: bounds.x,
+          contentY: bounds.y,
           padding: options.padding ?? 0,
           minZoom: options.minZoom ?? minZoom,
           maxZoom: options.maxZoom ?? maxZoom,
