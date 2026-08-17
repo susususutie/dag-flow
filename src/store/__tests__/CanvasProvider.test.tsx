@@ -1,10 +1,11 @@
 // @vitest-environment jsdom
 import { act, render, waitFor } from "@testing-library/react";
-import { createRef, useLayoutEffect } from "react";
+import { createRef, useContext, useLayoutEffect } from "react";
 import { describe, expect, it, vi } from "vitest";
 import CanvasProvider from "../CanvasProvider.tsx";
-import type { CanvasAction, DAGInstance, LayoutEngine } from "../../types/index.ts";
+import type { CanvasAction, DAGInstance, LayoutEngine, ViewApi } from "../../types/index.ts";
 import useCanvasDispatch from "../../hooks/useCanvasDispatch.ts";
+import { CanvasInstanceContext } from "../../contexts/StoreContext.tsx";
 import AutoLayout from "../../container/DagFlow/AutoLayout.tsx";
 
 function MeasureNode() {
@@ -60,6 +61,50 @@ describe("DAGInstance.layout", () => {
       flow: ["a"],
     });
     expect(ref.current?.getNode("a")?.position).toEqual({ x: 0, y: 0 });
+  });
+});
+
+describe("DAGInstance.fitView", () => {
+  it("无参调用时默认使用画布级 fitViewOptions", () => {
+    const ref = createRef<DAGInstance>();
+    const fitView = vi.fn();
+    const viewApi: ViewApi = {
+      getFlowElement: () => undefined,
+      fitView,
+      zoomIn: () => undefined,
+      zoomOut: () => undefined,
+      zoomTo: () => undefined,
+    };
+
+    function RegisterViewApi() {
+      const instance = useContext(CanvasInstanceContext);
+      useLayoutEffect(() => {
+        instance?.setViewApi(viewApi);
+        return () => instance?.clearViewApi(viewApi);
+      }, [instance]);
+      return null;
+    }
+
+    render(
+      <CanvasProvider
+        ref={ref}
+        defaultNodes={[{ id: "a", data: { label: "A" } }]}
+        defaultFlow={["a"]}
+        fitViewOptions={{ padding: 40 }}
+      >
+        <RegisterViewApi />
+      </CanvasProvider>,
+    );
+
+    act(() => ref.current?.fitView());
+    expect(fitView).toHaveBeenCalledWith({
+      padding: 40,
+      horizontalAlign: "left",
+      verticalAlign: "top",
+    });
+
+    act(() => ref.current?.fitView({ padding: 80 }));
+    expect(fitView).toHaveBeenLastCalledWith({ padding: 80 });
   });
 });
 

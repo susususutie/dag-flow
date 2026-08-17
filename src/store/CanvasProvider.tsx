@@ -423,7 +423,8 @@ const CanvasProvider = forwardRef<DAGInstance, CanvasProviderPropsWithChildren>(
         selectNode,
         clearSelection,
         getFlowElement: () => viewApiRef.current?.getFlowElement(),
-        fitView: (options) => viewApiRef.current?.fitView(options),
+        fitView: (options) =>
+          viewApiRef.current?.fitView(options ?? stateRef.current.fitViewOptions),
         zoomIn: () => viewApiRef.current?.zoomIn(),
         zoomOut: () => viewApiRef.current?.zoomOut(),
         zoomTo: (zoom: number) => viewApiRef.current?.zoomTo(zoom),
