@@ -51,10 +51,10 @@ function NodeWrapper({ id, resizeObserver, ...rest }: NodeWrapperProps) {
   const nodeType = type ?? "default";
   const NodeComponent = nodeTypes[nodeType] ?? nodeTypes.default ?? DefaultNode;
   const renderedNodeType = nodeTypes[nodeType] ? nodeType : "default";
-  const nodeProps: NodeComponentProps = {
+  const nodeProps: NodeComponentProps<Record<string, unknown>> = {
     id,
     type,
-    data,
+    data: data ?? {},
     selectable,
     selected: isSelected,
     isSelected,

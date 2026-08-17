@@ -25,6 +25,7 @@ import ProviderUncontrolledDemo from "./demos/ProviderUncontrolledDemo.tsx";
 import ControlsDemo from "./demos/ControlsDemo.tsx";
 import MiniMapDemo from "./demos/MiniMapDemo.tsx";
 import BackgroundDemo from "./demos/BackgroundDemo.tsx";
+import FlowEditorDemo from "./demos/FlowEditorDemo.tsx";
 
 export interface SceneEntry {
   render: ReactNode;
@@ -97,6 +98,10 @@ const SCENES: Array<{
       { key: "minimap", label: "MiniMap", render: <MiniMapDemo /> },
       { key: "background", label: "Background", render: <BackgroundDemo /> },
     ],
+  },
+  {
+    group: "复杂示例",
+    items: [{ key: "flow-1", label: "复杂流程编辑器", render: <FlowEditorDemo /> }],
   },
 ];
 

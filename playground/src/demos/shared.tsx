@@ -1,5 +1,5 @@
 import { NodeToolbar, Position } from "dag-flow";
-import type { DAGNode, FlowModel } from "dag-flow";
+import type { DAGNode, FlowModel, NodeProps } from "dag-flow";
 
 /** 状态节点徽标色板 */
 export const STATUS_COLORS: Record<string, string> = {
@@ -9,12 +9,7 @@ export const STATUS_COLORS: Record<string, string> = {
   processing: "#1677ff",
 };
 
-export interface StatusNodeProps {
-  id: string;
-  data?: { label?: string; status?: keyof typeof STATUS_COLORS };
-  selectable?: boolean;
-  selected?: boolean;
-}
+export type StatusNodeProps = NodeProps<{ label?: string; status?: keyof typeof STATUS_COLORS }>;
 
 /** 自定义节点：状态徽标 + 标签 */
 export function StatusNode(props: StatusNodeProps) {

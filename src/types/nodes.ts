@@ -26,11 +26,23 @@ export type PositionedDAGNode<T = Record<string, unknown>> = DAGNode<T> & {
   position: XYPosition;
 };
 
-/** 自定义节点组件接收的 props */
-export interface NodeComponentProps<T = Record<string, unknown>> {
+/**
+ * 自定义节点组件接收的 props（对齐 React Flow NodeProps）。
+ * 泛型为节点 data 类型，默认假设存在可选 label（内置 DefaultNode 渲染 data.label）。
+ *
+ * @example
+ * ```tsx
+ * import { type NodeProps } from "dag-flow";
+ *
+ * function ProcessNode({ data }: NodeProps<{ label: string; description?: string }>) {
+ *   return <div>{data.label}</div>;
+ * }
+ * ```
+ */
+export interface NodeComponentProps<T = { label?: string }> {
   id: string;
   type?: string;
-  data?: T;
+  data: T;
   selectable?: boolean;
   selected?: boolean;
   isSelected?: boolean;
@@ -39,5 +51,8 @@ export interface NodeComponentProps<T = Record<string, unknown>> {
   dragging: boolean;
 }
 
-/** 节点渲染注册表 { [type]: Component } */
-export type NodeTypes = Record<string, ComponentType<NodeComponentProps>>;
+/**
+ * 节点渲染注册表 { [type]: Component }。
+ * data 放宽为 any（对齐 React Flow NodeTypes），允许注册带任意 data 泛型的节点组件。
+ */
+export type NodeTypes = Record<string, ComponentType<NodeComponentProps & { data: any }>>;
