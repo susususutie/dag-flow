@@ -80,6 +80,12 @@ function App() {
 
 `DagFlow` 会复用外层 `DagFlowProvider` 的 store，不会创建第二份状态。hook 组件直接作为 `DagFlow` 的 `children` 时，本身已位于画布 Provider 内，无需再包一层 `DagFlowProvider`。
 
+`useDAGHistory()` 提供当前画布的撤销、重做和清空历史操作，以及对应的可用状态和历史数量：
+
+```tsx
+const { canUndo, canRedo, undo, redo, clearHistory } = useDAGHistory();
+```
+
 ## 自动布局与显式布局
 
 `autoLayout` 默认为 `true`。节点完成测量后，画布会自动执行一次布局；节点增删或 `flow` 变化后，画布会再次布局并通过 `onNodesChange` 发出 position changes。自动布局不调用 `fitView()`，不会修改当前 viewport，也不会增加撤销历史。
@@ -164,7 +170,7 @@ Portal 宿主不接收指针事件；需要交互的内容可自行设置 `point
 ## API 概览
 
 - 实例：`getDAG`、`getNodes`、`getNode`、`getFlow`、`setDAG`、`updateNode`、`updateNodeData`、`deleteNode`、`deleteNodes`、`selectNode`、`clearSelection`、`fitView`、`zoomIn`、`zoomOut`、`zoomTo`、`setViewport`、`getViewport`、`layout`
-- Hooks：`useDAGState`、`useDAGInstance`、`useNodesInitialized`、`useNodes`、`useFlow`、`useNodeId`、`useViewport`
+- Hooks：`useDAGState`、`useDAGInstance`、`useDAGHistory`、`useNodesInitialized`、`useNodes`、`useFlow`、`useNodeId`、`useViewport`
 - 附加组件：`Controls`、`MiniMap`、`Background`、`NodeToolbar`、`OverlayPortal`、`ViewportPortal`
 - 拓扑工具：`Flow`、`applyNodeChanges`
 

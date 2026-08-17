@@ -17,6 +17,7 @@ import LineStyleDemo from "./demos/LineStyleDemo.tsx";
 import CustomLayoutDemo from "./demos/CustomLayoutDemo.tsx";
 import ForceLayoutDemo from "./demos/ForceLayoutDemo.tsx";
 import KeyboardDemo from "./demos/KeyboardDemo.tsx";
+import HistoryDemo from "./demos/HistoryDemo.tsx";
 import CustomNodesDemo from "./demos/CustomNodesDemo.tsx";
 import NodeEditorDemo from "./demos/NodeEditorDemo.tsx";
 import ProviderDemo from "./demos/ProviderDemo.tsx";
@@ -59,6 +60,7 @@ const SCENES: Array<{
       { key: "delete-guard", label: "onBeforeDelete", render: <DeleteGuardDemo /> },
       { key: "pan-zoom-config", label: "缩放平移配置", render: <PanZoomConfigDemo /> },
       { key: "keyboard", label: "快捷键 复制/粘贴/撤销", render: <KeyboardDemo /> },
+      { key: "history", label: "撤销/重做历史", render: <HistoryDemo /> },
     ],
   },
   {

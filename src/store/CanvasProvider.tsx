@@ -522,6 +522,8 @@ const CanvasProvider = forwardRef<DAGInstance, CanvasProviderPropsWithChildren>(
       state.connectingEdge,
       state.nodesDraggable,
       state.direction,
+      state.history,
+      state.future,
     ]);
 
     const { nodeMap, selectedNodes } = state;

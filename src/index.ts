@@ -10,6 +10,8 @@ export type { ViewportPortalProps } from "./components/ViewportPortal/index.tsx"
 
 export { default as useDAGState } from "./hooks/useDAGState.ts";
 export { default as useDAGInstance } from "./hooks/useDAGInstance.ts";
+export { default as useDAGHistory } from "./hooks/useDAGHistory.ts";
+export type { DAGHistory } from "./hooks/useDAGHistory.ts";
 export { default as useNodes } from "./hooks/useNodes.ts";
 export { default as useFlow } from "./hooks/useFlow.ts";
 export { default as useViewport } from "./hooks/useViewport.ts";
