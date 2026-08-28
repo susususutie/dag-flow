@@ -1,5 +1,4 @@
 import {
-  forwardRef,
   useCallback,
   useContext,
   useEffect,
@@ -8,7 +7,7 @@ import {
   useMemo,
   useRef,
 } from "react";
-import type { ReactNode } from "react";
+import type { ReactNode, Ref } from "react";
 import { CanvasInstanceContext, DAGInstanceContext } from "../../contexts/StoreContext.tsx";
 import useCanvasDispatch from "../../hooks/useCanvasDispatch.ts";
 import useCanvasState from "../../hooks/useCanvasState.ts";
@@ -43,10 +42,7 @@ export interface GraphViewHandle {
   getViewport: () => ViewportType;
 }
 
-const GraphView = forwardRef<GraphViewHandle, { children?: ReactNode }>(function GraphView(
-  { children },
-  ref,
-) {
+function GraphView({ children, ref }: { children?: ReactNode; ref?: Ref<GraphViewHandle> }) {
   const instance = useContext(CanvasInstanceContext);
   const dag = useContext(DAGInstanceContext);
   const dispatch = useCanvasDispatch();
@@ -166,6 +162,6 @@ const GraphView = forwardRef<GraphViewHandle, { children?: ReactNode }>(function
       {children}
     </ZoomPane>
   );
-});
+}
 
 export default GraphView;

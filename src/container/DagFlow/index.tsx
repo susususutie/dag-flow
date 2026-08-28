@@ -1,5 +1,5 @@
-import { forwardRef, useId } from "react";
-import type { CSSProperties, ReactNode } from "react";
+import { useId } from "react";
+import type { CSSProperties, ReactNode, Ref } from "react";
 import StoreUpdater from "../../components/StoreUpdater/StoreUpdater.tsx";
 import Wrapper from "./Wrapper.tsx";
 import GraphView from "../GraphView/GraphView.tsx";
@@ -11,6 +11,7 @@ export interface DagFlowProps extends CanvasProviderProps {
   id?: string;
   style?: CSSProperties;
   children?: ReactNode;
+  ref?: Ref<GraphViewHandle>;
 }
 
 /**
@@ -57,8 +58,9 @@ export interface DagFlowProps extends CanvasProviderProps {
  * - setViewport(viewport) / getViewport()
  * - layout(options?)（纯计算布局并返回完整 DAGData）
  */
-const DagFlow = forwardRef<GraphViewHandle, DagFlowProps>(function DagFlow(props, ref) {
+function DagFlow(props: DagFlowProps) {
   const {
+    ref,
     id,
     style,
     children,
@@ -162,6 +164,6 @@ const DagFlow = forwardRef<GraphViewHandle, DagFlowProps>(function DagFlow(props
       </Wrapper>
     </div>
   );
-});
+}
 
 export default DagFlow;

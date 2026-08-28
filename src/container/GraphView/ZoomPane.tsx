@@ -1,5 +1,5 @@
-import { forwardRef, memo, useCallback, useEffect, useImperativeHandle, useRef } from "react";
-import type { ReactNode } from "react";
+import { memo, useCallback, useEffect, useImperativeHandle, useRef } from "react";
+import type { ReactNode, Ref } from "react";
 import useCanvasState from "../../hooks/useCanvasState.ts";
 import useRafCanvasDispatch from "../../hooks/useRafCanvasDispatch.ts";
 
@@ -15,9 +15,10 @@ function shouldZoom(e: WheelEvent, zoomModifier: string): boolean {
 /** 缩放层：监听滚轮，围绕鼠标位置缩放（对应 React Flow ZoomPane） */
 interface ZoomPaneProps {
   children: ReactNode;
+  ref?: Ref<HTMLDivElement>;
 }
 
-const ZoomPane = forwardRef<HTMLDivElement, ZoomPaneProps>(function ZoomPane({ children }, ref) {
+function ZoomPane({ children, ref }: ZoomPaneProps) {
   const dispatchOnAnimationFrame = useRafCanvasDispatch();
   const containerRef = useRef<HTMLDivElement>(null);
   useImperativeHandle(ref, () => containerRef.current as HTMLDivElement, []);
@@ -73,6 +74,6 @@ const ZoomPane = forwardRef<HTMLDivElement, ZoomPaneProps>(function ZoomPane({ c
       {children}
     </div>
   );
-});
+}
 
 export default memo(ZoomPane);
