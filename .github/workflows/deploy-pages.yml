@@ -21,17 +21,14 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - uses: pnpm/action-setup@v6
+      # Installs Vite+ (version resolved from package.json / pnpm catalog),
+      # sets up Node.js, the package manager, dependency cache, and runs `vp install`.
+      - uses: voidzero-dev/setup-vp@v1.21.2
         with:
-          version: 12
+          node-version: "24"
+          cache: true
 
-      - uses: actions/setup-node@v7
-        with:
-          node-version: 24
-          cache: pnpm
-
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm exec vp run playground#build
+      - run: vp run playground#build
 
       - uses: actions/configure-pages@v6
       - uses: actions/upload-pages-artifact@v5
