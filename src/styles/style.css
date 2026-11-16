@@ -13,6 +13,12 @@
   --dag-flow-node-border-radius: 8px;
   --dag-flow-edge-stroke: #b1b1b7;
   --dag-flow-edge-stroke-width: 1;
+  /* 与 utils/color.ts 的 statusColorMap 对齐 */
+  --dag-flow-edge-stroke-primary: #1677ff;
+  --dag-flow-edge-stroke-success: #52c41a;
+  --dag-flow-edge-stroke-error: #ff4d4f;
+  --dag-flow-edge-stroke-warning: #faad14;
+  --dag-flow-edge-stroke-processing: #1677ff;
   --dag-flow-controls-button-border: 1px solid #d9d9d9;
   --dag-flow-controls-button-background: #fff;
   --dag-flow-controls-button-color: rgba(0, 0, 0, 0.88);
@@ -73,6 +79,27 @@
   stroke: var(--dag-flow-edge-stroke);
   stroke-width: var(--dag-flow-edge-stroke-width);
   stroke-linecap: round;
+}
+
+/* 边状态；default 沿用基础 --dag-flow-edge-stroke，自定义状态由使用方 CSS 覆盖 */
+.dag-flow__edge[data-edge-state="primary"] .dag-flow__edge-path {
+  stroke: var(--dag-flow-edge-stroke-primary);
+}
+
+.dag-flow__edge[data-edge-state="success"] .dag-flow__edge-path {
+  stroke: var(--dag-flow-edge-stroke-success);
+}
+
+.dag-flow__edge[data-edge-state="error"] .dag-flow__edge-path {
+  stroke: var(--dag-flow-edge-stroke-error);
+}
+
+.dag-flow__edge[data-edge-state="warning"] .dag-flow__edge-path {
+  stroke: var(--dag-flow-edge-stroke-warning);
+}
+
+.dag-flow__edge[data-edge-state="processing"] .dag-flow__edge-path {
+  stroke: var(--dag-flow-edge-stroke-processing);
 }
 
 /* 点击命中区（透明加宽描边） */

@@ -22,7 +22,7 @@ export type {
   ViewApi,
 } from "./instance.ts";
 export { Position } from "./edges.ts";
-export type { EdgeProps, EdgeSpec } from "./edges.ts";
+export type { EdgeProps, EdgeSpec, EdgeState, EdgeStates } from "./edges.ts";
 export type {
   CanvasAction,
   CanvasConfigProps,

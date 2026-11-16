@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { DAGNode, FlowModel } from "../../types/index.ts";
-import { getFlowEdgeRoutes } from "../edges/flowPath.ts";
+import { getFlowEdgeGeometries, getFlowEdgeRoutes } from "../edges/flowPath.ts";
+import { computeDagEdges } from "../edges.ts";
 import { computeLayout } from "../layout.ts";
 
 function createGeometry(flow: FlowModel, ids: string[]) {
@@ -131,5 +132,52 @@ describe("默认边网络", () => {
       { x: 0, y: 560 },
       { x: 0, y: 720 },
     ]);
+  });
+
+  it("按逻辑边聚合分叉、主干与汇合分段", () => {
+    const flow: FlowModel = ["start", [["a"], ["b"]], "done"];
+    const { dimensions, nodeMap } = createGeometry(flow, ["start", "a", "b", "done"]);
+    const geometry = getFlowEdgeGeometries(flow, nodeMap, dimensions, "horizontal");
+
+    expect(geometry.edges.map((edge) => edge.id)).toEqual([
+      "start->a",
+      "start->b",
+      "a->done",
+      "b->done",
+    ]);
+    expect(geometry.structural).toEqual([]);
+    expect(geometry.edges.find((edge) => edge.id === "start->a")?.points).toEqual([
+      { x: 100, y: 0 },
+      { x: 260, y: 0 },
+      { x: 260, y: -28 },
+      { x: 420, y: -28 },
+    ]);
+    expect(geometry.edges.find((edge) => edge.id === "a->done")?.points).toEqual([
+      { x: 520, y: -28 },
+      { x: 680, y: -28 },
+      { x: 680, y: 0 },
+      { x: 840, y: 0 },
+    ]);
+  });
+
+  it("首尾并行组的分叉与汇合段作为中性结构段", () => {
+    const flow: FlowModel = [[["a"], ["b"]]];
+    const { dimensions, nodeMap } = createGeometry(flow, ["a", "b"]);
+    const geometry = getFlowEdgeGeometries(flow, nodeMap, dimensions, "horizontal");
+
+    expect(geometry.edges).toEqual([]);
+    expect(geometry.structural).toHaveLength(4);
+  });
+
+  it("computeDagEdges 与渲染几何使用同一组逻辑边 id", () => {
+    const flow: FlowModel = ["a", [["b", "c"], ["d"]], "e"];
+    const { dimensions, nodeMap } = createGeometry(flow, ["a", "b", "c", "d", "e"]);
+    const geometry = getFlowEdgeGeometries(flow, nodeMap, dimensions, "horizontal");
+
+    expect(geometry.edges.map((edge) => edge.id).sort()).toEqual(
+      computeDagEdges(flow)
+        .map((edge) => edge.id)
+        .sort(),
+    );
   });
 });

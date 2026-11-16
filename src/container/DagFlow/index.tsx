@@ -4,13 +4,15 @@ import StoreUpdater from "../../components/StoreUpdater/StoreUpdater.tsx";
 import Wrapper from "./Wrapper.tsx";
 import GraphView from "../GraphView/GraphView.tsx";
 import type { GraphViewHandle } from "../GraphView/GraphView.tsx";
-import type { CanvasProviderProps } from "../../types/index.ts";
+import type { CanvasProviderProps, EdgeStates } from "../../types/index.ts";
 import AutoLayout from "./AutoLayout.tsx";
 
 export interface DagFlowProps extends CanvasProviderProps {
   id?: string;
   style?: CSSProperties;
   children?: ReactNode;
+  /** 逻辑边 id（getEdgeId）到状态的映射；未提供的边使用 default 样式 */
+  edgeStates?: EdgeStates;
   ref?: Ref<GraphViewHandle>;
 }
 
@@ -25,6 +27,7 @@ export interface DagFlowProps extends CanvasProviderProps {
  * @param {Array<{id: string, type?: string, data: Object, selectable?: boolean}>} [props.nodes] - 受控节点数据（React Flow nodes），作为节点数据源
  * @param {Array} [props.defaultNodes] - 非受控模式的初始节点数据，仅首次挂载时生效
  * @param {{x: number, y: number, zoom: number}} [props.defaultViewport = {x: 0, y: 0, zoom: 1}] - 初始视口（React Flow defaultViewport）；zoom 受全局 minZoom/maxZoom 限制
+ * @param {Object} [props.edgeStates] - 逻辑边状态映射 { [edgeId]: StatusColor | string }；未提供的边使用 default 灰色样式
  * @param {boolean} [props.nodesSelectable = true] - 节点是否可选中，可由 node.selectable 覆盖
  * @param {boolean} [props.nodesDraggable = true] - 节点是否可拖动，可由 node.draggable 覆盖
  * @param {'horizontal' | 'vertical'} [props.direction = 'horizontal'] - 统一 Handle 与边端点方向，不配置布局算法
@@ -64,6 +67,7 @@ function DagFlow(props: DagFlowProps) {
     id,
     style,
     children,
+    edgeStates,
     //
     nodeTypes,
     nodes,
@@ -157,7 +161,7 @@ function DagFlow(props: DagFlowProps) {
           nodeTypes={nodeTypes}
           layoutEngine={layoutEngine}
         />
-        <GraphView ref={ref}>
+        <GraphView ref={ref} edgeStates={edgeStates}>
           <AutoLayout engine={layoutEngine} />
           {children}
         </GraphView>

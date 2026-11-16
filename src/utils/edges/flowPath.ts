@@ -1,7 +1,7 @@
 import type { DAGNode, FlowDirection, FlowModel, FlowPath, XYPosition } from "../../types/index.ts";
 import Flow from "../Flow.ts";
+import { getEdgeId } from "../edges.ts";
 import { getSourcePoint, getTargetPoint } from "./points.ts";
-import { getRoundedPath } from "./paths.ts";
 
 const DEFAULT_DIMENSIONS = { width: 150, height: 40 };
 const DEFAULT_BUS_OFFSET = 80;
@@ -29,6 +29,23 @@ interface StepGeometry {
 export interface FlowEdgeRoute {
   id: string;
   points: XYPosition[];
+}
+
+/** 单条逻辑边的完整几何；points 为各分段首尾相接后的连续折点 */
+export interface FlowEdgeGeometry {
+  id: string;
+  points: XYPosition[];
+}
+
+export interface FlowEdgeGeometries {
+  /** 有对应逻辑边的分段，按路线出现顺序聚合 */
+  edges: FlowEdgeGeometry[];
+  /** 没有对应逻辑边的分叉/汇合段（首尾并行组），使用默认描边 */
+  structural: XYPosition[][];
+}
+
+interface FlowRoute extends FlowEdgeRoute {
+  edgeIds: string[];
 }
 
 function primary(direction: FlowDirection, point: XYPosition): number {
@@ -129,12 +146,12 @@ function inferInternalOffset(direction: FlowDirection, step: StepGeometry): numb
  * 将嵌套 flow 转换为共享分叉/汇合点的正交边网络。
  * 并行组的汇合点始终位于最长路径之后，短路径会延伸到同一条总线。
  */
-export function getFlowEdgeRoutes(
+function buildFlowRoutes(
   flow: FlowModel,
   nodeMap: Map<string, DAGNode>,
   dimensions: Map<string, { width: number; height: number }>,
   direction: FlowDirection,
-): FlowEdgeRoute[] {
+): FlowRoute[] {
   const steps = new Flow(flow).toArray().flatMap((step) => {
     const geometry = createStepGeometry(step, nodeMap, dimensions, direction);
     return geometry ? [geometry] : [];
@@ -169,13 +186,17 @@ export function getFlowEdgeRoutes(
     step.exit = point(direction, primary(direction, step.rawExit) + exitOffset, trunkSecondary);
   }
 
-  const routes: FlowEdgeRoute[] = [];
+  const routes: FlowRoute[] = [];
   steps.forEach((step, stepIndex) => {
     const previous = steps[stepIndex - 1];
+    const next = steps[stepIndex + 1];
     if (previous?.exit && step.entry) {
       routes.push({
         id: `transition:${stepIndex - 1}->${stepIndex}`,
         points: connectOrthogonally(direction, previous.exit, step.entry),
+        edgeIds: previous.tails.flatMap((tail) =>
+          step.heads.map((head) => getEdgeId(tail.id, head.id)),
+        ),
       });
     }
 
@@ -188,6 +209,7 @@ export function getFlowEdgeRoutes(
             point(direction, primary(direction, step.entry), secondary(direction, head.target)),
             head.target,
           ],
+          edgeIds: previous ? previous.tails.map((tail) => getEdgeId(tail.id, head.id)) : [],
         });
       }
     }
@@ -199,6 +221,7 @@ export function getFlowEdgeRoutes(
         routes.push({
           id: `path:${source.id}->${target.id}`,
           points: connectOrthogonally(direction, source.source, target.target),
+          edgeIds: [getEdgeId(source.id, target.id)],
         });
       }
     }
@@ -212,6 +235,7 @@ export function getFlowEdgeRoutes(
             point(direction, primary(direction, step.exit), secondary(direction, tail.source)),
             step.exit,
           ],
+          edgeIds: next ? next.heads.map((head) => getEdgeId(tail.id, head.id)) : [],
         });
       }
     }
@@ -220,13 +244,52 @@ export function getFlowEdgeRoutes(
   return routes;
 }
 
-export function getFlowEdgePath(
+export function getFlowEdgeRoutes(
   flow: FlowModel,
   nodeMap: Map<string, DAGNode>,
   dimensions: Map<string, { width: number; height: number }>,
   direction: FlowDirection,
-): string {
-  return getFlowEdgeRoutes(flow, nodeMap, dimensions, direction)
-    .map((route) => getRoundedPath(route.points))
-    .join(" ");
+): FlowEdgeRoute[] {
+  return buildFlowRoutes(flow, nodeMap, dimensions, direction).map(({ id, points }) => ({
+    id,
+    points,
+  }));
+}
+
+/** 按逻辑边聚合路由分段；首尾并行组的孤立分叉/汇合段单独返回。 */
+export function getFlowEdgeGeometries(
+  flow: FlowModel,
+  nodeMap: Map<string, DAGNode>,
+  dimensions: Map<string, { width: number; height: number }>,
+  direction: FlowDirection,
+): FlowEdgeGeometries {
+  const segments = new Map<string, XYPosition[][]>();
+  const structural: XYPosition[][] = [];
+
+  for (const route of buildFlowRoutes(flow, nodeMap, dimensions, direction)) {
+    if (route.edgeIds.length === 0) {
+      structural.push(route.points);
+      continue;
+    }
+    for (const id of route.edgeIds) {
+      const parts = segments.get(id);
+      if (parts) parts.push(route.points);
+      else segments.set(id, [route.points]);
+    }
+  }
+
+  return {
+    edges: Array.from(segments, ([id, parts]) => ({ id, points: joinPoints(parts) })),
+    structural,
+  };
+}
+
+function joinPoints(parts: XYPosition[][]): XYPosition[] {
+  const points: XYPosition[] = [];
+  for (const part of parts) {
+    const previous = points[points.length - 1];
+    const start = previous && previous.x === part[0].x && previous.y === part[0].y ? 1 : 0;
+    points.push(...part.slice(start));
+  }
+  return points;
 }

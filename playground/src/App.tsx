@@ -14,6 +14,7 @@ import DeleteGuardDemo from "./demos/DeleteGuardDemo.tsx";
 import PanZoomConfigDemo from "./demos/PanZoomConfigDemo.tsx";
 import GapDemo from "./demos/GapDemo.tsx";
 import LineStyleDemo from "./demos/LineStyleDemo.tsx";
+import EdgeStatesDemo from "./demos/EdgeStatesDemo.tsx";
 import CustomLayoutDemo from "./demos/CustomLayoutDemo.tsx";
 import ForceLayoutDemo from "./demos/ForceLayoutDemo.tsx";
 import KeyboardDemo from "./demos/KeyboardDemo.tsx";
@@ -69,6 +70,7 @@ const SCENES: Array<{
     items: [
       { key: "gap", label: "布局算法间距", render: <GapDemo /> },
       { key: "line-style", label: "Edge CSS variables", render: <LineStyleDemo /> },
+      { key: "edge-states", label: "边状态（edgeStates）", render: <EdgeStatesDemo /> },
       { key: "custom-layout", label: "自定义布局引擎", render: <CustomLayoutDemo /> },
       { key: "force-layout", label: "显式 layout()", render: <ForceLayoutDemo /> },
     ],

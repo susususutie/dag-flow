@@ -167,12 +167,59 @@ Portal 宿主不接收指针事件；需要交互的内容可自行设置 `point
 }
 ```
 
+## 边状态
+
+`edgeStates` 按逻辑边 id 为单条边设置状态，不写入 `flow` 或节点数据：
+
+```tsx
+import { computeDagEdges, DagFlow } from "dag-flow";
+
+// 示例：按来源节点状态映射到出边
+const edgeStates = Object.fromEntries(
+  computeDagEdges(flow).map((edge) => [edge.id, nodeStatus[edge.source] ?? "default"]),
+);
+
+<DagFlow flow={flow} nodes={nodes} edgeStates={edgeStates} />;
+```
+
+逻辑边 id 由 `getEdgeId(source, target)` 生成，当前格式为 `source->target`；自行拼 key 时使用该函数。
+
+内置状态复用 `StatusColor`：`primary`、`success`、`error`、`warning`、`processing`、`default`。map 值也可以是任意自定义字符串；未出现在 map 中的边使用 `default`。内置状态和自定义状态都可通过 CSS 覆盖：
+
+```css
+.dag-flow {
+  --dag-flow-edge-stroke-success: #52c41a;
+}
+
+.dag-flow__edge[data-edge-state="retrying"] .dag-flow__edge-path {
+  stroke: #722ed1;
+  stroke-dasharray: 6 4;
+}
+
+.dag-flow__edge[data-edge-id="a->b"] .dag-flow__edge-path {
+  stroke-width: 3;
+}
+```
+
+每条逻辑边有独立 path，但共享主干和分叉/汇合段仍与相邻边重叠，重叠处后绘制的边可见。绘制顺序为普通状态 → `error` → `default`，因此共享主干默认保持灰色；首尾并行组的孤立分叉/汇合段也使用 `default` 样式。
+
 ## API 概览
 
 - 实例：`getDAG`、`getNodes`、`getNode`、`getFlow`、`setDAG`、`updateNode`、`updateNodeData`、`deleteNode`、`deleteNodes`、`selectNode`、`clearSelection`、`fitView`、`zoomIn`、`zoomOut`、`zoomTo`、`setViewport`、`getViewport`、`layout`
 - Hooks：`useDAGState`、`useDAGInstance`、`useDAGHistory`、`useNodesInitialized`、`useNodes`、`useFlow`、`useNodeId`、`useViewport`
 - 附加组件：`Controls`、`MiniMap`、`Background`、`NodeToolbar`、`OverlayPortal`、`ViewportPortal`
-- 拓扑工具：`Flow`、`applyNodeChanges`
+- 拓扑工具：`Flow`、`applyNodeChanges`、`computeDagEdges`、`getEdgeId`
+
+## TODO
+
+- **状态架构：按变更频率拆分 Context**
+  当前所有画布状态共用一套 `CanvasProvider` store，静态配置（`nodeTypes`、`layoutEngine`、交互开关）与高频状态（`transform`、`selectedNodes`、`connectingEdge`、节点测量）走同一个订阅入口。计划拆成多套 Context：静态配置、低频业务数据（`nodes`/`flow`）和高频交互状态分别提供，组件只订阅自己需要的部分，缩小重渲染范围。
+
+- **边状态：需要时再增加 resolver**
+  当前只支持 `edgeStates` map。如果后续需要从节点状态自动推导边状态，再增加 `getEdgeState` resolver；优先级为 `edgeStates` > `getEdgeState` > `default`。
+
+- **CSS 变量前缀：缩短为 `--df-`**
+  当前公开变量统一使用 `--dag-flow-` 前缀（如 `--dag-flow-edge-stroke`、`--dag-flow-node-border`），名称偏长。计划统一改为 `--df-`（如 `--df-edge-stroke`、`--df-node-border`）。该变更会改变使用方覆盖样式的写法，属于破坏性变更，需要同步更新文档和示例。
 
 ## 开发
 

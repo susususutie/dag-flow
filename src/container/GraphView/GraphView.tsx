@@ -14,6 +14,7 @@ import useCanvasState from "../../hooks/useCanvasState.ts";
 import useKeyboardHook from "../../hooks/useKeyboardHook.ts";
 import type {
   DAGNode,
+  EdgeStates,
   FitViewOptions,
   FlowModel,
   ViewApi,
@@ -42,7 +43,15 @@ export interface GraphViewHandle {
   getViewport: () => ViewportType;
 }
 
-function GraphView({ children, ref }: { children?: ReactNode; ref?: Ref<GraphViewHandle> }) {
+function GraphView({
+  children,
+  edgeStates,
+  ref,
+}: {
+  children?: ReactNode;
+  edgeStates?: EdgeStates;
+  ref?: Ref<GraphViewHandle>;
+}) {
   const instance = useContext(CanvasInstanceContext);
   const dag = useContext(DAGInstanceContext);
   const dispatch = useCanvasDispatch();
@@ -154,7 +163,7 @@ function GraphView({ children, ref }: { children?: ReactNode; ref?: Ref<GraphVie
     <ZoomPane ref={setRendererRef}>
       <Pane>
         <Viewport>
-          <EdgeRenderer />
+          <EdgeRenderer edgeStates={edgeStates} />
           <NodeRenderer />
         </Viewport>
       </Pane>

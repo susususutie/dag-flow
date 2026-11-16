@@ -31,6 +31,7 @@ export { default as NodeToolbar } from "./additional-components/NodeToolbar/Node
 export type { NodeToolbarProps } from "./additional-components/NodeToolbar/NodeToolbar.tsx";
 
 export { default as applyNodeChanges } from "./utils/changes.ts";
+export { computeDagEdges, getEdgeId } from "./utils/edges.ts";
 export { default as Flow } from "./utils/Flow.ts";
 export {
   computeLayout,

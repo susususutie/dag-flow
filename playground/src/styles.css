@@ -327,6 +327,12 @@
   color: #1677ff;
 }
 
+/* 自定义边状态：仅在该状态出现时覆盖内置描边 */
+.demo-canvas .dag-flow__edge[data-edge-state="retrying"] .dag-flow__edge-path {
+  stroke: #722ed1;
+  stroke-dasharray: 6 4;
+}
+
 .demo-scene {
   display: flex;
   flex-direction: column;
