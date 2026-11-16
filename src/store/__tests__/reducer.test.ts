@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import canvasReducer from "../reducer.ts";
 import initialState from "../initialState.ts";
 import { assertValidDAG, createNodeMap } from "../utils.ts";

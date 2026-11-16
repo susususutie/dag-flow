@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import type { DAGNode, FlowModel } from "../../types/index.ts";
 import { getFlowEdgeGeometries, getFlowEdgeRoutes } from "../edges/flowPath.ts";
 import { computeDagEdges } from "../edges.ts";

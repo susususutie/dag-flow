@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import { getSourcePoint, getTargetPoint } from "../edges/points.ts";
 
 const position = { x: 10, y: 20 };

@@ -217,12 +217,15 @@ catalogs:
     react-dom:
       specifier: 19.3.1
       version: 19.3.1
+    vite:
+      specifier: npm:@voidzero-dev/vite-plus-core@1.6.0
+      version: 1.6.0
     vite-plus:
       specifier: 1.6.0
       version: 1.6.0
 
 overrides:
-  vite: npm:@voidzero-dev/vite-plus-core@1.6.0
+  vite@*: npm:@voidzero-dev/vite-plus-core@1.6.0
 
 importers:
 
@@ -262,14 +265,11 @@ importers:
         specifier: ^7.0.2
         version: 7.0.2
       vite:
-        specifier: npm:@voidzero-dev/vite-plus-core@1.6.0
+        specifier: 'catalog:'
         version: '@voidzero-dev/vite-plus-core@1.6.0(@types/node@26.6.6)(@typescript/native-preview@7.0.0-dev.20260707.2)(jiti@2.7.0)(typescript@7.0.2)(yaml@2.9.1)'
       vite-plus:
         specifier: 'catalog:'
         version: 1.6.0(@types/node@26.6.6)(@typescript/native-preview@7.0.0-dev.20260707.2)(@vitest/ui@5.1.0)(jiti@2.7.0)(jsdom@31.0.1)(typescript@7.0.2)(yaml@2.9.1)
-      vitest:
-        specifier: 5.1.0
-        version: 5.1.0(@types/node@26.6.6)(@vitest/browser-preview@5.1.0)(@vitest/ui@5.1.0)(@voidzero-dev/vite-plus-core@1.6.0(@types/node@26.6.6)(@typescript/native-preview@7.0.0-dev.20260707.2)(jiti@2.7.0)(typescript@7.0.2)(yaml@2.9.1))(jsdom@31.0.1)
 
   playground:
     dependencies:
@@ -293,7 +293,7 @@ importers:
         specifier: ^6.3.0
         version: 6.3.0(@voidzero-dev/vite-plus-core@1.6.0(@types/node@26.6.6)(@typescript/native-preview@7.0.0-dev.20260707.2)(jiti@2.7.0)(typescript@7.0.2)(yaml@2.9.1))
       vite:
-        specifier: npm:@voidzero-dev/vite-plus-core@1.6.0
+        specifier: 'catalog:'
         version: '@voidzero-dev/vite-plus-core@1.6.0(@types/node@26.6.6)(@typescript/native-preview@7.0.0-dev.20260707.2)(jiti@2.7.0)(typescript@7.0.2)(yaml@2.9.1)'
       vite-plus:
         specifier: 'catalog:'

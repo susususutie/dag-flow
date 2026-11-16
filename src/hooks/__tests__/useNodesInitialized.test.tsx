@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { render, renderHook, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import { CanvasContext } from "../../contexts/StoreContext.tsx";
 import initialState from "../../store/initialState.ts";
 import type { CanvasState } from "../../types/index.ts";

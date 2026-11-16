@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { fireEvent, render, waitFor } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import CanvasProvider from "../../store/CanvasProvider.tsx";
 import useDAGHistory from "../useDAGHistory.ts";
 import useDAGInstance from "../useDAGInstance.ts";

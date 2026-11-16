@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import { computeLayout, getNodesBounds } from "../layout.ts";
 import type { FlowModel, XYPosition } from "../../types/index.ts";
 

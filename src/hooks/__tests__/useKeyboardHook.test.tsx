@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { fireEvent, render, waitFor } from "@testing-library/react";
 import { useRef } from "react";
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vite-plus/test";
 import CanvasProvider from "../../store/CanvasProvider.tsx";
 import useKeyboardHook from "../useKeyboardHook.ts";
 import type { NodeChanges } from "../../types/index.ts";

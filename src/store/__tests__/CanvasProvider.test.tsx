@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { act, render, waitFor } from "@testing-library/react";
 import { createRef, useContext, useLayoutEffect } from "react";
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vite-plus/test";
 import CanvasProvider from "../CanvasProvider.tsx";
 import type { CanvasAction, DAGInstance, LayoutEngine, ViewApi } from "../../types/index.ts";
 import useCanvasDispatch from "../../hooks/useCanvasDispatch.ts";
